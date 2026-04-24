@@ -1,0 +1,108 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // -----------------------------------------------------------
+    // HELPER FUNCTIONS
+    // -----------------------------------------------------------
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function getAuthUser() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function isAdmin() { return isSignedIn() && getAuthUser().role == 'admin'; }
+    function isController() { return isSignedIn() && getAuthUser().role == 'controller'; }
+    function isCandidate() { return isSignedIn() && getAuthUser().role == 'candidate'; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // -----------------------------------------------------------
+    // GLOBAL CATCH-ALL
+    // -----------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -----------------------------------------------------------
+    // USERS COLLECTION
+    // -----------------------------------------------------------
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 100 &&
+               data.phoneNumber is string && data.phoneNumber.size() >= 8 && data.phoneNumber.size() <= 20 &&
+               data.role in ['candidate', 'controller', 'admin'];
+      }
+
+      // Read: Self, or Controller/Admin (if authorized)
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin() || isController());
+      allow list: if isSignedIn() && (isAdmin() || (isController() && resource.data.district == getAuthUser().district));
+
+      // Create: Self-registration allowed for candidate and invite-only roles.
+      // NOTE: For strong security, enforce invite validation server-side (e.g., Cloud Functions + custom claims).
+      allow create: if isSignedIn() && isValidUser(incoming()) && isOwner(userId) && incoming().createdAt == request.time;
+
+      // Update: Self (restricted fields) or Controller/Admin
+      allow update: if isSignedIn() && (
+        (isOwner(userId) && incoming().role == existing().role && incoming().district == existing().district && incoming().updatedAt == request.time) ||
+        isAdmin() ||
+        (isController() && existing().district == getAuthUser().district && incoming().role == existing().role)
+      );
+    }
+
+    // -----------------------------------------------------------
+    // JOBS COLLECTION
+    // -----------------------------------------------------------
+    match /jobs/{jobId} {
+      function isValidJob(data) {
+        return data.title is string && data.title.size() <= 200 &&
+               data.description is string &&
+               data.status in ['published', 'unpublished', 'paused', 'closed'];
+      }
+
+      allow read: if isSignedIn();
+      allow create: if (isAdmin() || isController()) && isValidJob(incoming()) && incoming().createdAt == request.time;
+      allow update: if (isAdmin() || (isController() && existing().controllerId == request.auth.uid)) && isValidJob(incoming()) && incoming().updatedAt == request.time;
+      allow delete: if isAdmin();
+    }
+
+    // -----------------------------------------------------------
+    // APPLICATIONS COLLECTION
+    // -----------------------------------------------------------
+    match /applications/{applicationId} {
+      function isValidApplication(data) {
+        return data.jobId is string && data.userId is string &&
+               data.status in ['pending', 'approved', 'rejected', 'shortlisted'];
+      }
+
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin() || isController());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin() || isController());
+
+      // Create: Candidate only
+      allow create: if isCandidate() && incoming().userId == request.auth.uid && isValidApplication(incoming()) && incoming().appliedAt == request.time;
+
+      // Update: Controller or Admin (status only)
+      allow update: if (isAdmin() || isController()) && incoming().userId == existing().userId && incoming().jobId == existing().jobId && isValidApplication(incoming()) && incoming().updatedAt == request.time;
+    }
+
+    // -----------------------------------------------------------
+    // NOTICES / ADS
+    // -----------------------------------------------------------
+    match /notices/{noticeId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isController();
+    }
+
+    match /ads/{adId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isController();
+    }
+
+    // -----------------------------------------------------------
+    // MESSAGES
+    // -----------------------------------------------------------
+    match /messages/{messageId} {
+      allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
+      allow create: if isSignedIn() && incoming().senderId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.receiverId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+    }
+  }
+}

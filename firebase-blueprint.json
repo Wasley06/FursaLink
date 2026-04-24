@@ -1,0 +1,132 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System user profiles for candidates, controllers, and admins.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "role": { "type": "string", "enum": ["candidate", "controller", "admin"] },
+        "dob": { "type": "string", "format": "date" },
+        "gender": { "type": "string", "enum": ["male", "female", "other"] },
+        "nationalId": { "type": "string" },
+        "district": { "type": "string" },
+        "ward": { "type": "string" },
+        "education": { "type": "string" },
+        "skills": { "type": "string" },
+        "occupation": { "type": "string" },
+        "experience": { "type": "number" },
+        "cvUrl": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "profileProgress": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "phoneNumber", "role"]
+    },
+    "Job": {
+      "title": "Job",
+      "description": "Employment opportunities posted by controllers.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "qualifications": { "type": "string" },
+        "deadline": { "type": "string", "format": "date-time" },
+        "district": { "type": "string" },
+        "occupation": { "type": "string" },
+        "status": { "type": "string", "enum": ["published", "unpublished", "paused", "closed"] },
+        "controllerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "description", "status", "controllerId"]
+    },
+    "Application": {
+      "title": "Application",
+      "description": "Job applications submitted by candidates.",
+      "type": "object",
+      "properties": {
+        "jobId": { "type": "string" },
+        "userId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected", "shortlisted"] },
+        "notes": { "type": "string" },
+        "appliedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["jobId", "userId", "status"]
+    },
+    "Notice": {
+      "title": "Notice",
+      "description": "Government announcements and notices.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string", "enum": ["announcement", "notice", "seminar", "workshop"] },
+        "audience": { "type": "string" },
+        "controllerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "type"]
+    },
+    "Ad": {
+      "title": "Ad",
+      "description": "Banners and posters displayed on the platform.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "targetAudience": { "type": "string" },
+        "targetDistrict": { "type": "string" },
+        "controllerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "imageUrl", "startDate", "endDate"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Internal communication messages.",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "content": { "type": "string" },
+        "subject": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "receiverId", "content"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile collection."
+    },
+    "/jobs/{jobId}": {
+      "schema": "Job",
+      "description": "Job postings collection."
+    },
+    "/applications/{applicationId}": {
+      "schema": "Application",
+      "description": "Job applications collection."
+    },
+    "/notices/{noticeId}": {
+      "schema": "Notice",
+      "description": "Announcements and notices collection."
+    },
+    "/ads/{adId}": {
+      "schema": "Ad",
+      "description": "Advertising and banners collection."
+    },
+    "/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Internal messaging collection."
+    }
+  }
+}

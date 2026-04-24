@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0B4F8A;
+  --color-primary-hover: #1565C0;
+  --color-navy: #083B66;
+  --color-emerald: #1F8A4D;
+  --color-success: #22C55E;
+  --color-gold: #D9A441;
+  --color-gold-hover: #C8921E;
+  --color-sky: #EAF4FB;
+  --color-danger: #DC2626;
+  --color-warning: #F59E0B;
+  --color-muted: #6B7280;
+  --color-border: #D1D5DB;
+  --color-text-dark: #1F2937;
+
+  --font-sans: "Inter", "Poppins", ui-sans-serif, system-ui, sans-serif;
+  
+  --radius-card: 18px;
+  
+  --shadow-premium: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+@layer base {
+  body {
+    @apply bg-sky text-text-dark font-sans antialiased;
+    background-image:
+      radial-gradient(900px 600px at 15% 10%, rgba(11, 79, 138, 0.18), rgba(11, 79, 138, 0) 55%),
+      radial-gradient(900px 600px at 85% 15%, rgba(217, 164, 65, 0.18), rgba(217, 164, 65, 0) 55%),
+      radial-gradient(700px 500px at 50% 90%, rgba(31, 138, 77, 0.12), rgba(31, 138, 77, 0) 60%);
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-hover text-white px-6 py-2.5 rounded-xl transition-all duration-200 shadow-sm flex items-center justify-center font-semibold disabled:opacity-50 disabled:cursor-not-allowed text-sm;
+  }
+  
+  .btn-success {
+    @apply bg-emerald hover:bg-success text-white px-6 py-2.5 rounded-xl transition-all duration-200 shadow-sm flex items-center justify-center font-semibold disabled:opacity-50 text-sm;
+  }
+  
+  .btn-gold {
+    @apply bg-gold hover:bg-gold-hover text-white px-6 py-2.5 rounded-xl transition-all duration-200 shadow-sm flex items-center justify-center font-semibold disabled:opacity-50 text-sm;
+  }
+
+  .btn-outline {
+    @apply border border-border bg-white text-navy hover:bg-sky px-6 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-center font-semibold text-sm;
+  }
+  
+  .premium-card {
+    @apply rounded-[18px] shadow-premium p-6 border border-white/35 flex flex-col;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(14px) saturate(1.25);
+    -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl border border-border bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm;
+  }
+
+  .glass-card {
+    @apply rounded-[24px] border border-white/40 shadow-2xl;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(18px) saturate(1.35);
+    -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  }
+
+  .glass-input {
+    @apply w-full px-4 py-2.5 rounded-xl border border-white/55 outline-none transition-all text-sm;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(14px) saturate(1.25);
+    -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  }
+
+  .glass-input:focus {
+    @apply ring-2 ring-primary/15 border-primary/40;
+  }
+
+  .bento-grid {
+    @apply grid gap-5;
+  }
+}
+
+.bg-glass-radial {
+  background-image:
+    radial-gradient(700px 500px at 25% 25%, rgba(11, 79, 138, 0.22), rgba(11, 79, 138, 0) 60%),
+    radial-gradient(700px 500px at 75% 15%, rgba(217, 164, 65, 0.18), rgba(217, 164, 65, 0) 62%),
+    radial-gradient(800px 600px at 60% 80%, rgba(31, 138, 77, 0.16), rgba(31, 138, 77, 0) 60%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-card,
+  .glass-input,
+  .premium-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.92) !important;
+  }
+}
+
+.gradient-header {
+  background: linear-gradient(135deg, #0B4F8A, #1565C0);
+}
+
+.gradient-premium {
+  background: linear-gradient(135deg, #D9A441, #F59E0B);
+}
+
+.status-pill {
+    @apply px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider;
+}
+
+.status-pending { background: #FEF3C7; color: #92400E; }
+.status-approved { background: #D1FAE5; color: #065F46; }
+.status-rejected { background: #FEE2E2; color: #991B1B; }
+
+.ai-tag {
+    @apply bg-gradient-to-r from-gold to-warning text-white px-2 py-0.5 rounded text-[10px] font-black uppercase ml-2;
+}
