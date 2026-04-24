@@ -20,7 +20,7 @@
   "author": "FursaLink Zanzibar",
   "repository": {
     "type": "git",
-    "url": "https://github.com/REPLACE_ME/REPLACE_ME.git"
+    "url": "https://github.com/Wasley-Dev/fursalink-zanzibar.git"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
