@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-const { app, BrowserWindow, shell, dialog } = require('electron');
+const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 
@@ -74,20 +74,6 @@ function setupAutoUpdates(win) {
 
   autoUpdater.on('update-downloaded', async () => {
     win?.webContents.send('app:update-status', { status: 'downloaded' });
-
-    const res = await dialog.showMessageBox(win, {
-      type: 'info',
-      buttons: ['Restart Now', 'Later'],
-      defaultId: 0,
-      cancelId: 1,
-      title: 'Update Ready',
-      message: 'A new version has been downloaded.',
-      detail: 'Restart the app to apply the update.',
-    });
-
-    if (res.response === 0) {
-      autoUpdater.quitAndInstall();
-    }
   });
 
   // Initial check + periodic checks
