@@ -28,8 +28,14 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Build + publish
+      - name: Build + publish (Windows)
+        if: matrix.os == 'windows-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --publish always
+        run: npx electron-builder --win --x64 --publish always
 
+      - name: Build + publish (macOS)
+        if: matrix.os == 'macos-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --mac --x64 --arm64 --publish always
