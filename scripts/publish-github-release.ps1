@@ -28,7 +28,8 @@ $assets = @(
 )
 
 & gh release view $tag --repo $Repo *> $null 2>&1
-if ($LASTEXITCODE -ne 0) {
+$exists = $LASTEXITCODE -eq 0
+if (-not $exists) {
   Write-Host "Creating release $tag (draft)..."
   & gh release create $tag --repo $Repo --title $tag --notes "Auto-update release for desktop installers." --draft
 }
@@ -40,4 +41,3 @@ Write-Host "Publishing release..."
 & gh release edit $tag --repo $Repo --draft=false --latest
 
 Write-Host "Done."
-
