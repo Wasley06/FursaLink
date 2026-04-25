@@ -15,7 +15,8 @@
     "desktop:dist": "npm run build && electron-builder --publish never",
     "desktop:dist:win": "npm run build && electron-builder --win --publish never",
     "desktop:dist:mac": "npm run build && electron-builder --mac --publish never",
-    "seed:dev-user": "tsx scripts/create-dev-user.ts"
+    "seed:dev-user": "tsx scripts/create-dev-user.ts",
+    "desktop:publish": "npm run desktop:dist && powershell -ExecutionPolicy Bypass -File scripts/publish-github-release.ps1"
   },
   "main": "electron/main.cjs",
   "author": "FursaLink Zanzibar",
