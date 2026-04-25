@@ -5,7 +5,8 @@ import './index.css';
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    const url = `/sw.js?v=${encodeURIComponent(__APP_VERSION__)}`;
+    navigator.serviceWorker.register(url).catch(() => {});
   });
 }
 

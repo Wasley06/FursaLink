@@ -3,12 +3,19 @@
    - Enables offline usage after first successful visit
 */
 
-const CACHE_NAME = 'fursalink-cache-v1';
+const VERSION = (() => {
+  try {
+    return new URL(self.location.href).searchParams.get('v') || 'v1';
+  } catch {
+    return 'v1';
+  }
+})();
+const CACHE = `fursalink-cache-${VERSION}`;
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
+    caches.open(CACHE).then((cache) =>
       cache.addAll([
         '/',
         '/index.html',
@@ -24,7 +31,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      await Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)));
+      await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
       await self.clients.claim();
     })(),
   );
@@ -42,7 +49,7 @@ self.addEventListener('fetch', (event) => {
       (async () => {
         try {
           const fresh = await fetch(req);
-          const cache = await caches.open(CACHE_NAME);
+          const cache = await caches.open(CACHE);
           cache.put('/index.html', fresh.clone());
           return fresh;
         } catch {
@@ -61,7 +68,7 @@ self.addEventListener('fetch', (event) => {
         const cached = await caches.match(req);
         const fetchPromise = fetch(req)
           .then(async (res) => {
-            const cache = await caches.open(CACHE_NAME);
+            const cache = await caches.open(CACHE);
             cache.put(req, res.clone());
             return res;
           })
@@ -72,4 +79,3 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
-
