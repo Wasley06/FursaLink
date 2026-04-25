@@ -98,20 +98,25 @@ export default function InviteRegister() {
 
       const role = inviteRole === 'controller' ? 'controller' : inviteRole === 'chairman' ? 'chairman' : 'developer';
 
-      await setDoc(doc(db, 'users', user.uid), {
-        fullName: formData.fullName,
-        phoneNumber: formData.phoneNumber,
-        role,
-        profileProgress: 100,
-        inviteRole: inviteRole,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      navigate('/dashboard');
-    } catch (err: any) {
-      console.error(err);
-      if (err.code === 'auth/operation-not-allowed') {
+      await setDoc(doc(db, 'users', user.uid), { 
+        fullName: formData.fullName, 
+        phoneNumber: formData.phoneNumber, 
+        role, 
+        profileProgress: 100, 
+        phoneVerified: inviteRole === 'developer' ? true : false,
+        inviteRole: inviteRole, 
+        createdAt: serverTimestamp(), 
+        updatedAt: serverTimestamp(), 
+      }); 
+ 
+      if (inviteRole === 'developer') {
+        navigate('/dashboard');
+      } else {
+        navigate('/verify-phone', { replace: true });
+      }
+    } catch (err: any) { 
+      console.error(err); 
+      if (err.code === 'auth/operation-not-allowed') { 
         const url = getAuthProvidersConsoleUrl();
         setError(
           url
@@ -128,7 +133,7 @@ export default function InviteRegister() {
 
   const handleDemoCreate = () => {
     if (!inviteRole) return;
-    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', import.meta.env.DEV);
+    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', true);
     if (!demoEnabled) return;
     if (inviteRole === 'developer') return;
     const demoKey = inviteRole === 'controller' ? 'controller' : 'chairman';

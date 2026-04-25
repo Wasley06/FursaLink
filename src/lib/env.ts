@@ -10,4 +10,3 @@ export function readViteEnvBool(key: string, defaultValue: boolean): boolean {
   if (['0', 'false', 'no', 'off'].includes(raw)) return false;
   return defaultValue;
 }
-

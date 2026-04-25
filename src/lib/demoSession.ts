@@ -35,5 +35,5 @@ export const DEMO_USERS: Record<DemoRole, Omit<DemoSession, 'uid'>> = {
   chairman: { role: 'chairman', fullName: 'Demo Chairman', phoneNumber: '0777000003' },
 };
 
-export const DEMO_PIN = '12345678';
-
+const rawPin = (import.meta as any).env?.VITE_DEMO_PIN;
+export const DEMO_PIN = typeof rawPin === 'string' && rawPin.trim() ? rawPin.trim() : '12345678';

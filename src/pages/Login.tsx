@@ -119,7 +119,7 @@ export default function Login() {
   };
 
   const handleDemoLogin = () => {
-    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', import.meta.env.DEV);
+    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', true);
     if (!demoEnabled) return;
     const role = selectedRole;
     if (role === 'developer') return;
@@ -154,7 +154,7 @@ export default function Login() {
         </div>
 
         <div className="px-10 pb-4">
-          <div className="grid grid-cols-4 gap-2 rounded-2xl bg-white/30 border border-white/50 backdrop-blur-md p-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 rounded-2xl bg-white/30 border border-white/50 backdrop-blur-md p-2">
             {[
               { key: 'candidate', label: t('role.candidate') },
               { key: 'controller', label: t('role.controller') },
@@ -272,7 +272,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full py-4 text-sm font-black uppercase tracking-widest group shadow-xl shadow-primary/15"
+              className="btn-primary w-full py-4 text-sm font-black uppercase tracking-widest group shadow-xl shadow-primary/15 whitespace-nowrap"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -285,7 +285,7 @@ export default function Login() {
           </form>
 
           <div className="mt-4">
-            {readViteEnvBool('VITE_ENABLE_DEMO_AUTH', import.meta.env.DEV) && selectedRole !== 'developer' && (
+            {readViteEnvBool('VITE_ENABLE_DEMO_AUTH', true) && selectedRole !== 'developer' && (
               <button
                 type="button"
                 onClick={handleDemoLogin}

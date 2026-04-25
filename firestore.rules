@@ -47,7 +47,16 @@ service cloud.firestore {
 
       // Update: Self (restricted fields) or Controller/Admin
       allow update: if isSignedIn() && (
-        (isOwner(userId) && incoming().role == existing().role && incoming().district == existing().district && incoming().updatedAt == request.time) ||
+        (isOwner(userId) &&
+          incoming().role == existing().role &&
+          incoming().district == existing().district &&
+          (
+            // Allow OTP verification flag only after linking a phone credential.
+            (incoming().phoneVerified == existing().phoneVerified) ||
+            (incoming().phoneVerified == true && request.auth.token.phone_number != null)
+          ) &&
+          incoming().updatedAt == request.time
+        ) ||
         isChairman() ||
         (isController() && existing().district == getAuthUser().district && incoming().role == existing().role)
       );

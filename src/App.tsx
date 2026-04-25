@@ -14,6 +14,7 @@ const CandidateDashboard = React.lazy(() => import('./pages/CandidateDashboard')
 const ControllerDashboard = React.lazy(() => import('./pages/ControllerDashboard'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
 const DeveloperDashboard = React.lazy(() => import('./pages/DeveloperDashboard'));
+const VerifyPhone = React.lazy(() => import('./pages/VerifyPhone'));
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) {
   const { user, profile, loading } = useAuth();
@@ -64,9 +65,10 @@ export default function App() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/login/:role" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/register/invite/:role" element={<InviteRegister />} />
-                <Route path="/dashboard" element={<RoleRedirect />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/register/invite/:role" element={<InviteRegister />} />
+            <Route path="/verify-phone" element={<VerifyPhone />} />
+            <Route path="/dashboard" element={<RoleRedirect />} />
                 
                 <Route path="/candidate/*" element={
                   <ProtectedRoute allowedRoles={['candidate']}>

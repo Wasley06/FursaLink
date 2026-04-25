@@ -7,6 +7,7 @@ export interface UserProfile {
   fullName: string;
   phoneNumber: string;
   role: StoredUserRole;
+  phoneVerified?: boolean;
   dob?: string;
   gender?: 'male' | 'female' | 'other';
   nationalId?: string;

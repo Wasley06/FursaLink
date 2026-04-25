@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
-    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', import.meta.env.DEV);
+    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', true);
     const existingDemo = demoEnabled ? getDemoSession() : null;
     if (demoEnabled && existingDemo) {
       setIsDemo(true);
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInDemo = (session: DemoSession) => {
-    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', import.meta.env.DEV);
+    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', true);
     if (!demoEnabled) return;
     setDemoSession(session);
     setIsDemo(true);

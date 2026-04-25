@@ -61,25 +61,26 @@ export default function Register() {
       const user = userCredential.user; 
 
       // Create profile in Firestore
-      await setDoc(doc(db, 'users', user.uid), {
-        fullName: formData.fullName,
-        phoneNumber: formData.phoneNumber,
-        role: 'candidate',
-        dob: formData.dob,
-        gender: formData.gender,
-        district: formData.district,
-        ward: formData.ward,
-        education: formData.education,
-        occupation: formData.occupation,
-        profileProgress: 50,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      navigate('/candidate');
-    } catch (err: any) {
-      console.error(err);
-      if (err.code === 'auth/operation-not-allowed') {
+      await setDoc(doc(db, 'users', user.uid), { 
+        fullName: formData.fullName, 
+        phoneNumber: formData.phoneNumber, 
+        role: 'candidate', 
+        dob: formData.dob, 
+        gender: formData.gender, 
+        district: formData.district, 
+        ward: formData.ward, 
+        education: formData.education, 
+        occupation: formData.occupation, 
+        profileProgress: 50, 
+        phoneVerified: false,
+        createdAt: serverTimestamp(), 
+        updatedAt: serverTimestamp(), 
+      }); 
+ 
+      navigate('/verify-phone', { replace: true });
+    } catch (err: any) { 
+      console.error(err); 
+      if (err.code === 'auth/operation-not-allowed') { 
         const url = getAuthProvidersConsoleUrl();
         setError(
           url
@@ -95,7 +96,7 @@ export default function Register() {
   };
 
   const handleDemoCreate = () => { 
-    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', import.meta.env.DEV);
+    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', true);
     if (!demoEnabled) return;
     const demo = DEMO_USERS.candidate; 
     signInDemo({ uid: 'demo_candidate', role: 'candidate', fullName: demo.fullName, phoneNumber: demo.phoneNumber }); 
