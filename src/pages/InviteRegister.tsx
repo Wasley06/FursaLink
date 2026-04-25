@@ -6,6 +6,8 @@ import { auth, db } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { AlertCircle, ArrowRight, KeyRound, Loader2, Lock, Phone, ShieldCheck, User } from 'lucide-react';
 import { getAuthProvidersConsoleUrl } from '../lib/firebaseConsole';
+import { useAuth } from '../contexts/AuthContext';
+import { DEMO_PIN, DEMO_USERS } from '../lib/demoSession';
 
 type InviteRole = 'controller' | 'chairman';
 
@@ -28,6 +30,7 @@ export default function InviteRegister() {
   const inviteRole = normalizeInviteRole(params.role);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { signInDemo } = useAuth();
 
   const inviteCodeFromUrl = searchParams.get('code') || '';
 
@@ -111,6 +114,14 @@ export default function InviteRegister() {
     }
   };
 
+  const handleDemoCreate = () => {
+    if (!inviteRole) return;
+    const demoKey = inviteRole === 'controller' ? 'controller' : 'chairman';
+    const demo = DEMO_USERS[demoKey];
+    signInDemo({ uid: `demo_${demoKey}`, role: demoKey as any, fullName: demo.fullName, phoneNumber: demo.phoneNumber });
+    navigate('/dashboard');
+  };
+
   if (!inviteRole) {
     return (
       <div className="min-h-screen bg-sky p-6 flex items-center justify-center">
@@ -156,7 +167,18 @@ export default function InviteRegister() {
           {error && (
             <div className="mb-6 p-4 bg-danger/10 border border-danger/20 text-danger rounded-xl flex items-center gap-3">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <p className="text-[11px] font-bold uppercase tracking-tight">{error}</p>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-tight break-words">{error}</p>
+                {error.includes('Enable Email/Password') && (
+                  <button
+                    type="button"
+                    onClick={handleDemoCreate}
+                    className="mt-2 text-xs font-black uppercase tracking-widest text-primary hover:underline"
+                  >
+                    Create Demo {roleLabel} (PIN {DEMO_PIN})
+                  </button>
+                )}
+              </div>
             </div>
           )}
 

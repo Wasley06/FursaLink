@@ -6,11 +6,14 @@ import { motion } from 'motion/react';
 import { AlertCircle, ArrowRight, Loader2, Lock, Phone, ShieldCheck } from 'lucide-react';
 import { labelForRole, normalizeLoginRole } from '../lib/roles';
 import { getAuthProvidersConsoleUrl } from '../lib/firebaseConsole';
+import { DEMO_PIN, DEMO_USERS } from '../lib/demoSession';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
   const params = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { signInDemo } = useAuth();
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
@@ -52,6 +55,18 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDemoLogin = () => {
+    const role = selectedRole;
+    const demo = DEMO_USERS[role];
+    signInDemo({
+      uid: `demo_${role}`,
+      role,
+      fullName: demo.fullName,
+      phoneNumber: demo.phoneNumber,
+    });
+    navigate('/dashboard');
   };
 
   return (
@@ -171,6 +186,16 @@ export default function Login() {
               )}
             </button>
           </form>
+
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              className="btn-outline w-full justify-center py-3 text-xs font-black uppercase tracking-widest border-white/50 bg-white/30"
+            >
+              Demo Login (PIN {DEMO_PIN})
+            </button>
+          </div>
 
           {selectedRole === 'candidate' ? (
             <p className="mt-10 text-center text-[11px] font-bold uppercase tracking-widest text-muted">

@@ -3,12 +3,14 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { UserProfile } from '../types';
+import { clearDemoSession, DemoSession, getDemoSession, setDemoSession } from '../lib/demoSession';
 
 interface AuthContextType {
-  user: User | null;
+  user: User | { uid: string } | null;
   profile: UserProfile | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  signInDemo: (session: DemoSession) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,8 +19,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
+    const existingDemo = getDemoSession();
+    if (existingDemo) {
+      setIsDemo(true);
+      setUser({ uid: existingDemo.uid } as any);
+      setProfile({
+        id: existingDemo.uid,
+        fullName: existingDemo.fullName,
+        phoneNumber: existingDemo.phoneNumber,
+        role: existingDemo.role === 'chairman' ? ('admin' as any) : (existingDemo.role as any),
+        profileProgress: 100,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as UserProfile);
+      setLoading(false);
+      return;
+    }
+
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       
@@ -43,10 +63,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribeAuth();
   }, []);
 
-  const signOut = () => auth.signOut();
+  const signOut = async () => {
+    if (isDemo) {
+      clearDemoSession();
+      setIsDemo(false);
+      setUser(null);
+      setProfile(null);
+      return;
+    }
+    await auth.signOut();
+  };
+
+  const signInDemo = (session: DemoSession) => {
+    setDemoSession(session);
+    setIsDemo(true);
+    setUser({ uid: session.uid } as any);
+    setProfile({
+      id: session.uid,
+      fullName: session.fullName,
+      phoneNumber: session.phoneNumber,
+      role: session.role === 'chairman' ? ('admin' as any) : (session.role as any),
+      profileProgress: 100,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as UserProfile);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signOut, signInDemo }}>
       {children}
     </AuthContext.Provider>
   );

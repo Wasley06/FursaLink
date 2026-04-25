@@ -7,12 +7,15 @@ import { motion } from 'motion/react';
 import { DISTRICTS, WARDS, District } from '../constants/locations';
 import { User, Phone, Lock, UserPlus, ArrowRight, Loader2, MapPin, Briefcase, AlertCircle } from 'lucide-react';
 import { getAuthProvidersConsoleUrl } from '../lib/firebaseConsole';
+import { useAuth } from '../contexts/AuthContext';
+import { DEMO_PIN, DEMO_USERS } from '../lib/demoSession';
 
 export default function Register() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { signInDemo } = useAuth();
 
   // Form State
   const [formData, setFormData] = useState({
@@ -83,6 +86,12 @@ export default function Register() {
     }
   };
 
+  const handleDemoCreate = () => {
+    const demo = DEMO_USERS.candidate;
+    signInDemo({ uid: 'demo_candidate', role: 'candidate', fullName: demo.fullName, phoneNumber: demo.phoneNumber });
+    navigate('/candidate');
+  };
+
   return (
     <div className="min-h-screen bg-sky py-20 px-6 flex items-center justify-center relative overflow-hidden font-sans">
       <div className="absolute inset-0 bg-glass-radial pointer-events-none" />
@@ -121,7 +130,18 @@ export default function Register() {
           {error && (
             <div className="mb-8 p-4 bg-danger/5 border border-danger/10 text-danger rounded-xl flex items-center gap-3">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <p className="text-[11px] font-bold uppercase tracking-tight">{error}</p>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-tight break-words">{error}</p>
+                {error.includes('Enable Email/Password') && (
+                  <button
+                    type="button"
+                    onClick={handleDemoCreate}
+                    className="mt-2 text-xs font-black uppercase tracking-widest text-primary hover:underline"
+                  >
+                    Create Demo Candidate (PIN {DEMO_PIN})
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
