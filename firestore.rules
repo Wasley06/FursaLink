@@ -7,9 +7,10 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
     function getAuthUser() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
-    function isAdmin() { return isSignedIn() && getAuthUser().role == 'admin'; }
+    function isChairman() { return isSignedIn() && getAuthUser().role in ['chairman', 'admin']; }
     function isController() { return isSignedIn() && getAuthUser().role == 'controller'; }
     function isCandidate() { return isSignedIn() && getAuthUser().role == 'candidate'; }
+    function isDeveloper() { return isSignedIn() && getAuthUser().role == 'developer'; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function incoming() { return request.resource.data; }
@@ -29,12 +30,16 @@ service cloud.firestore {
       function isValidUser(data) {
         return data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 100 &&
                data.phoneNumber is string && data.phoneNumber.size() >= 8 && data.phoneNumber.size() <= 20 &&
-               data.role in ['candidate', 'controller', 'admin'];
+               data.role in ['candidate', 'controller', 'chairman', 'developer', 'admin'];
       }
 
       // Read: Self, or Controller/Admin (if authorized)
-      allow get: if isSignedIn() && (isOwner(userId) || isAdmin() || isController());
-      allow list: if isSignedIn() && (isAdmin() || (isController() && resource.data.district == getAuthUser().district));
+      allow get: if isSignedIn() && (isOwner(userId) || isChairman() || isDeveloper() || isController());
+      allow list: if isSignedIn() && (
+        isChairman() ||
+        isDeveloper() ||
+        (isController() && resource.data.role == 'candidate' && resource.data.district == getAuthUser().district)
+      );
 
       // Create: Self-registration allowed for candidate and invite-only roles.
       // NOTE: For strong security, enforce invite validation server-side (e.g., Cloud Functions + custom claims).
@@ -43,7 +48,7 @@ service cloud.firestore {
       // Update: Self (restricted fields) or Controller/Admin
       allow update: if isSignedIn() && (
         (isOwner(userId) && incoming().role == existing().role && incoming().district == existing().district && incoming().updatedAt == request.time) ||
-        isAdmin() ||
+        isChairman() ||
         (isController() && existing().district == getAuthUser().district && incoming().role == existing().role)
       );
     }
@@ -59,9 +64,9 @@ service cloud.firestore {
       }
 
       allow read: if isSignedIn();
-      allow create: if (isAdmin() || isController()) && isValidJob(incoming()) && incoming().createdAt == request.time;
-      allow update: if (isAdmin() || (isController() && existing().controllerId == request.auth.uid)) && isValidJob(incoming()) && incoming().updatedAt == request.time;
-      allow delete: if isAdmin();
+      allow create: if (isChairman() || isController()) && isValidJob(incoming()) && incoming().createdAt == request.time;
+      allow update: if (isChairman() || (isController() && existing().controllerId == request.auth.uid)) && isValidJob(incoming()) && incoming().updatedAt == request.time;
+      allow delete: if isChairman();
     }
 
     // -----------------------------------------------------------
@@ -73,14 +78,14 @@ service cloud.firestore {
                data.status in ['pending', 'approved', 'rejected', 'shortlisted'];
       }
 
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin() || isController());
-      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin() || isController());
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isChairman() || isController());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isChairman() || isController());
 
       // Create: Candidate only
       allow create: if isCandidate() && incoming().userId == request.auth.uid && isValidApplication(incoming()) && incoming().appliedAt == request.time;
 
       // Update: Controller or Admin (status only)
-      allow update: if (isAdmin() || isController()) && incoming().userId == existing().userId && incoming().jobId == existing().jobId && isValidApplication(incoming()) && incoming().updatedAt == request.time;
+      allow update: if (isChairman() || isController()) && incoming().userId == existing().userId && incoming().jobId == existing().jobId && isValidApplication(incoming()) && incoming().updatedAt == request.time;
     }
 
     // -----------------------------------------------------------
@@ -88,12 +93,12 @@ service cloud.firestore {
     // -----------------------------------------------------------
     match /notices/{noticeId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || isController();
+      allow write: if isChairman() || isController();
     }
 
     match /ads/{adId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || isController();
+      allow write: if isChairman() || isController();
     }
 
     // -----------------------------------------------------------
@@ -103,6 +108,51 @@ service cloud.firestore {
       allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
       allow create: if isSignedIn() && incoming().senderId == request.auth.uid;
       allow update: if isSignedIn() && resource.data.receiverId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+    }
+
+    // -----------------------------------------------------------
+    // COURSES / EVENTS + ENROLLMENTS / BOOKINGS
+    // -----------------------------------------------------------
+    match /courses/{courseId} {
+      allow read: if isSignedIn();
+      allow write: if isChairman() || isController();
+    }
+
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow write: if isChairman() || isController();
+    }
+
+    match /courseEnrollments/{enrollmentId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isChairman() || isController());
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isChairman() || isController());
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // -----------------------------------------------------------
+    // APPROVAL WORKFLOW (Controller -> Chairman)
+    // -----------------------------------------------------------
+    match /approvalRequests/{requestId} {
+      allow read: if isSignedIn() && (isChairman() || (isController() && resource.data.controllerId == request.auth.uid));
+      allow create: if isController() && incoming().controllerId == request.auth.uid && incoming().status == 'pending';
+      allow update: if isChairman();
+      allow delete: if isChairman();
+    }
+
+    match /approvalLogs/{logId} {
+      allow read: if isSignedIn() && (isChairman() || isDeveloper());
+      allow create: if isSignedIn() && (isChairman() || isDeveloper());
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if isSignedIn() && (isChairman() || isDeveloper());
+      allow create: if isSignedIn() && (isChairman() || isDeveloper() || isController());
     }
   }
 }

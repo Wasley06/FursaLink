@@ -21,15 +21,70 @@
   --radius-card: 18px;
   
   --shadow-premium: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+
+  /* Role-based theme background accents (overridden at runtime) */
+  --theme-bg-1: rgba(11, 79, 138, 0.18);
+  --theme-bg-2: rgba(217, 164, 65, 0.18);
+  --theme-bg-3: rgba(31, 138, 77, 0.12);
+
+  /* Watermark (replace the SVG with the official coat of arms if needed) */
+  --watermark-image: url('/brand/coat-of-arms-watermark.png');
+  --watermark-opacity: 0.07;
 }
 
 @layer base {
   body {
     @apply bg-sky text-text-dark font-sans antialiased;
+    position: relative;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
     background-image:
-      radial-gradient(900px 600px at 15% 10%, rgba(11, 79, 138, 0.18), rgba(11, 79, 138, 0) 55%),
-      radial-gradient(900px 600px at 85% 15%, rgba(217, 164, 65, 0.18), rgba(217, 164, 65, 0) 55%),
-      radial-gradient(700px 500px at 50% 90%, rgba(31, 138, 77, 0.12), rgba(31, 138, 77, 0) 60%);
+      radial-gradient(900px 600px at 15% 10%, var(--theme-bg-1), rgba(0, 0, 0, 0) 55%),
+      radial-gradient(900px 600px at 85% 15%, var(--theme-bg-2), rgba(0, 0, 0, 0) 55%),
+      radial-gradient(700px 500px at 50% 90%, var(--theme-bg-3), rgba(0, 0, 0, 0) 60%);
+  }
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--watermark-image);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(72vh, 72vw);
+  opacity: var(--watermark-opacity);
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+@media print {
+  :root {
+    --watermark-opacity: 0.09;
+  }
+  @page {
+    margin: 12mm;
+  }
+  body {
+    background: white !important;
+  }
+  aside,
+  header {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  .premium-card,
+  .glass-card {
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
   }
 }
 
@@ -86,9 +141,9 @@
 
 .bg-glass-radial {
   background-image:
-    radial-gradient(700px 500px at 25% 25%, rgba(11, 79, 138, 0.22), rgba(11, 79, 138, 0) 60%),
-    radial-gradient(700px 500px at 75% 15%, rgba(217, 164, 65, 0.18), rgba(217, 164, 65, 0) 62%),
-    radial-gradient(800px 600px at 60% 80%, rgba(31, 138, 77, 0.16), rgba(31, 138, 77, 0) 60%);
+    radial-gradient(700px 500px at 25% 25%, var(--theme-bg-1), rgba(0, 0, 0, 0) 60%),
+    radial-gradient(700px 500px at 75% 15%, var(--theme-bg-2), rgba(0, 0, 0, 0) 62%),
+    radial-gradient(800px 600px at 60% 80%, var(--theme-bg-3), rgba(0, 0, 0, 0) 60%);
 }
 
 @media (prefers-reduced-transparency: reduce) {

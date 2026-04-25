@@ -6,6 +6,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { Job, Application, UserProfile } from '../types';
 import DashboardLayout from '../components/DashboardLayout';
 import { motion } from 'motion/react';
+import JobsPage from './controller/JobsPage';
+import EditJobPage from './controller/EditJobPage';
+import CandidatesPage from './controller/CandidatesPage';
+import ControllerNoticesPage from './controller/NoticesPage';
+import ControllerMessagesPage from './controller/MessagesPage';
+import ControllerSettingsPage from './controller/SettingsPage';
+import ApplicationsPage from './controller/ApplicationsPage';
+import { logAudit } from '../lib/audit';
 import { 
   Users, 
   Briefcase, 
@@ -189,7 +197,7 @@ function CreateJob() {
     e.preventDefault();
     setLoading(true);
     try {
-      await addDoc(collection(db, 'jobs'), {
+      const ref = await addDoc(collection(db, 'jobs'), {
         ...formData,
         district: profile?.district,
         controllerId: profile?.id,
@@ -197,6 +205,7 @@ function CreateJob() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      await logAudit('job:create', { jobId: ref.id, district: profile?.district });
       navigate('/controller/jobs');
     } catch (err) {
       console.error(err);
@@ -258,10 +267,13 @@ export default function ControllerDashboard() {
       <Routes>
         <Route index element={<ControllerOverview />} />
         <Route path="jobs/new" element={<CreateJob />} />
-        <Route path="jobs" element={<div className="premium-card">Job Management Coming Soon...</div>} />
-        <Route path="candidates" element={<div className="premium-card">Candidate Directory Coming Soon...</div>} />
-        <Route path="notices" element={<div className="premium-card">Notice Board Management Coming Soon...</div>} />
-        <Route path="ads" element={<div className="premium-card">Ads & Banners Coming Soon...</div>} />
+        <Route path="jobs" element={<JobsPage />} />
+        <Route path="jobs/:jobId/edit" element={<EditJobPage />} />
+        <Route path="candidates" element={<CandidatesPage />} />
+        <Route path="applications" element={<ApplicationsPage />} />
+        <Route path="notices" element={<ControllerNoticesPage />} />
+        <Route path="messages" element={<ControllerMessagesPage />} />
+        <Route path="settings" element={<ControllerSettingsPage />} />
         <Route path="*" element={<ControllerOverview />} />
       </Routes>
     </DashboardLayout>

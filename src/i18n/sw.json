@@ -1,0 +1,49 @@
+{
+  "lang.en": "EN",
+  "lang.sw": "SW",
+
+  "common.logout": "Ondoka",
+  "common.search": "Tafuta kazi, zana, na taarifa…",
+  "common.loading": "Inapakia…",
+  "common.save": "Hifadhi Mabadiliko",
+
+  "nav.dashboard": "Dashibodi",
+  "nav.jobs": "Ajira",
+  "nav.applications": "Maombi Yangu",
+  "nav.notices": "Matangazo",
+  "nav.events": "Matukio",
+  "nav.courses": "Kozi",
+  "nav.messages": "Ujumbe",
+  "nav.settings": "Mipangilio",
+
+  "nav.jobManagement": "Usimamizi wa Ajira",
+  "nav.candidateDirectory": "Orodha ya Waombaji",
+  "nav.createJob": "Tengeneza Ajira",
+  "nav.communications": "Mawasiliano",
+
+  "nav.executiveStats": "Takwimu Kuu",
+  "nav.approvals": "Idhini",
+  "nav.analytics": "Uchambuzi wa Taifa",
+  "nav.userDirectory": "Orodha ya Watumiaji",
+  "nav.systemSecurity": "Usalama wa Mfumo",
+  "nav.internalComms": "Mawasiliano ya Ndani",
+  "nav.systemConfig": "Mipangilio ya Mfumo",
+
+  "nav.diagnostics": "Uchunguzi",
+  "nav.securityLogs": "Kumbukumbu za Usalama",
+  "nav.userLookup": "Tafuta Mtumiaji",
+
+  "login.portal": "Lango Rasmi la Kuingia",
+  "login.phone": "Namba ya Simu",
+  "login.username": "Jina la Mtumiaji",
+  "login.pin": "Namba ya Siri",
+  "login.staySignedIn": "Kaa Umeingia",
+  "login.reset": "Weka Upya",
+  "login.enter": "Ingia Mfumo",
+
+  "role.candidate": "Mwombaji",
+  "role.controller": "Msimamizi",
+  "role.chairman": "Mwenyekiti",
+  "role.developer": "Msanidi"
+}
+

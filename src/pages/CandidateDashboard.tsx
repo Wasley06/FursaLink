@@ -1,11 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
-import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
+import { Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+  where,
+} from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { Job, Application, Notice } from '../types';
+import { Application, Booking, Course, CourseEnrollment, Event, Job, Notice } from '../types';
 import DashboardLayout from '../components/DashboardLayout';
 import { motion } from 'motion/react';
+import NoticesPage from './candidate/NoticesPage';
+import EventsPage from './candidate/EventsPage';
+import CoursesPage from './candidate/CoursesPage';
+import MessagesPage from './candidate/MessagesPage';
+import SettingsPage from './candidate/SettingsPage';
 import { 
   Briefcase, 
   Clock, 
@@ -16,7 +32,11 @@ import {
   ChevronRight,
   ArrowRight,
   Megaphone,
-  Bell
+  Bell,
+  BookOpen,
+  CalendarDays,
+  Check,
+  XCircle
 } from 'lucide-react';
 
 function Overview() {
@@ -166,15 +186,352 @@ function Overview() {
   );
 }
 
+function JobBoard() {
+  const { profile } = useAuth();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const run = async () => {
+      if (!profile) return;
+      setLoading(true);
+      const q = query(collection(db, 'jobs'), where('status', '==', 'published'), orderBy('createdAt', 'desc'), limit(50));
+      const snap = await getDocs(q);
+      setJobs(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Job)));
+      setLoading(false);
+    };
+    run();
+  }, [profile]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-navy italic">Job Board</h1>
+          <p className="text-muted font-medium">Browse published government vacancies and apply instantly.</p>
+        </div>
+        <Link to="/candidate/applications" className="btn-outline bg-white/40 border-white/50">
+          View My Applications <ArrowRight className="w-4 h-4 ml-2" />
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className="premium-card text-center text-muted">Loading jobs…</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {jobs.map((job) => (
+            <Link key={job.id} to={`/candidate/jobs/${job.id}`} className="premium-card hover:translate-y-[-2px] transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center">
+                  <Briefcase className="w-5 h-5 text-primary" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary/70">{job.district}</span>
+              </div>
+              <div className="text-sm font-extrabold text-navy">{job.title}</div>
+              <div className="mt-1 text-xs text-muted font-medium">{job.occupation}</div>
+              <div className="mt-4 flex items-center justify-between border-t border-white/40 pt-3">
+                <span className="text-[11px] font-bold text-muted">Open</span>
+                <ChevronRight className="w-4 h-4 text-muted" />
+              </div>
+            </Link>
+          ))}
+          {jobs.length === 0 && <div className="premium-card text-center text-muted">No published jobs yet.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function JobDetails() {
+  const { profile } = useAuth();
+  const { jobId } = useParams();
+  const navigate = useNavigate();
+  const [job, setJob] = useState<Job | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string>('');
+
+  useEffect(() => {
+    const run = async () => {
+      if (!jobId) return;
+      setLoading(true);
+      const snap = await getDoc(doc(db, 'jobs', jobId));
+      setJob(snap.exists() ? ({ id: snap.id, ...snap.data() } as Job) : null);
+      setLoading(false);
+    };
+    run();
+  }, [jobId]);
+
+  const apply = async () => {
+    if (!profile || !job) return;
+    setSubmitting(true);
+    setMessage('');
+    try {
+      await addDoc(collection(db, 'applications'), {
+        jobId: job.id,
+        jobTitle: job.title,
+        jobDistrict: job.district,
+        occupation: job.occupation,
+        controllerId: job.controllerId,
+        userId: profile.id,
+        userName: profile.fullName,
+        userPhone: profile.phoneNumber,
+        status: 'pending',
+        appliedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      setMessage('Application submitted successfully.');
+      setTimeout(() => navigate('/candidate/applications'), 600);
+    } catch (e: any) {
+      console.error(e);
+      setMessage(e?.message || 'Failed to submit application.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) return <div className="premium-card text-center text-muted">Loading job…</div>;
+  if (!job) return <div className="premium-card text-center text-muted">Job not found.</div>;
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <div className="premium-card">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-widest text-muted">Vacancy</div>
+            <h1 className="text-3xl font-extrabold text-navy mt-2">{job.title}</h1>
+            <p className="text-sm text-muted font-medium mt-1">{job.occupation} • {job.district}</p>
+          </div>
+          <button onClick={apply} disabled={submitting} className="btn-primary px-8 py-3 text-xs font-black uppercase tracking-widest">
+            {submitting ? 'Submitting…' : 'Apply Now'}
+          </button>
+        </div>
+        {message && <div className="mt-4 text-sm font-bold text-primary">{message}</div>}
+      </div>
+
+      <div className="premium-card">
+        <h3 className="text-base font-extrabold text-navy mb-3">Description</h3>
+        <p className="text-sm text-muted whitespace-pre-wrap">{job.description}</p>
+      </div>
+
+      <div className="premium-card">
+        <h3 className="text-base font-extrabold text-navy mb-3">Qualifications</h3>
+        <p className="text-sm text-muted whitespace-pre-wrap">{job.qualifications}</p>
+      </div>
+    </div>
+  );
+}
+
+function ApplicationsPage() {
+  const { profile } = useAuth();
+  const [apps, setApps] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const run = async () => {
+      if (!profile) return;
+      setLoading(true);
+      const q = query(collection(db, 'applications'), where('userId', '==', profile.id), orderBy('appliedAt', 'desc'), limit(100));
+      const snap = await getDocs(q);
+      setApps(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    };
+    run();
+  }, [profile]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-extrabold text-navy italic">My Applications</h1>
+          <p className="text-muted font-medium">Track approvals, rejections, and chairman decisions.</p>
+        </div>
+        <Link to="/candidate/jobs" className="btn-primary px-6 py-3 text-xs font-black uppercase tracking-widest">
+          Apply to Jobs <ArrowRight className="w-4 h-4 ml-2" />
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className="premium-card text-center text-muted">Loading applications…</div>
+      ) : (
+        <div className="premium-card p-0 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-sky/50">
+                <tr>
+                  <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Job</th>
+                  <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">District</th>
+                  <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-sky">
+                {apps.map((a) => (
+                  <tr key={a.id} className="hover:bg-sky/20 transition-colors">
+                    <td className="px-6 py-4 text-sm font-bold text-navy">{a.jobTitle || a.jobId}</td>
+                    <td className="px-6 py-4 text-sm text-muted">{a.jobDistrict || '-'}</td>
+                    <td className="px-6 py-4">
+                      <span className={`status-pill ${a.status === 'approved' ? 'status-approved' : a.status === 'rejected' ? 'status-rejected' : 'status-pending'}`}>
+                        {String(a.status || 'pending')}
+                      </span>
+                      {a.chairmanStatus && (
+                        <span className={`ml-2 status-pill ${a.chairmanStatus === 'approved' ? 'status-approved' : a.chairmanStatus === 'rejected' ? 'status-rejected' : 'status-pending'}`}>
+                          chairman: {String(a.chairmanStatus)}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {apps.length === 0 && (
+                  <tr>
+                    <td className="px-6 py-6 text-sm text-muted italic" colSpan={3}>
+                      No applications yet. Open the Job Board and apply.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CoursesAndEvents() {
+  const { profile } = useAuth();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [enrollments, setEnrollments] = useState<Record<string, boolean>>({});
+  const [bookings, setBookings] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const run = async () => {
+      const [cSnap, eSnap] = await Promise.all([
+        getDocs(query(collection(db, 'courses'), where('status', '==', 'published'), orderBy('createdAt', 'desc'), limit(50))),
+        getDocs(query(collection(db, 'events'), where('status', '==', 'published'), orderBy('createdAt', 'desc'), limit(50))),
+      ]);
+      setCourses(cSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Course)));
+      setEvents(eSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Event)));
+
+      if (profile) {
+        const [enSnap, bSnap] = await Promise.all([
+          getDocs(query(collection(db, 'courseEnrollments'), where('userId', '==', profile.id), limit(200))),
+          getDocs(query(collection(db, 'bookings'), where('userId', '==', profile.id), limit(200))),
+        ]);
+        const enMap: Record<string, boolean> = {};
+        enSnap.docs.forEach((d) => (enMap[(d.data() as any).courseId] = true));
+        setEnrollments(enMap);
+        const bMap: Record<string, boolean> = {};
+        bSnap.docs.forEach((d) => (bMap[(d.data() as any).eventId] = true));
+        setBookings(bMap);
+      }
+    };
+    run();
+  }, [profile]);
+
+  const enroll = async (courseId: string) => {
+    if (!profile) return;
+    await addDoc(collection(db, 'courseEnrollments'), {
+      userId: profile.id,
+      courseId,
+      status: 'enrolled',
+      createdAt: serverTimestamp(),
+    } as Omit<CourseEnrollment, 'id'>);
+    setEnrollments((p) => ({ ...p, [courseId]: true }));
+  };
+
+  const book = async (eventId: string) => {
+    if (!profile) return;
+    await addDoc(collection(db, 'bookings'), {
+      userId: profile.id,
+      eventId,
+      status: 'booked',
+      createdAt: serverTimestamp(),
+    } as Omit<Booking, 'id'>);
+    setBookings((p) => ({ ...p, [eventId]: true }));
+  };
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-extrabold text-navy italic">Government Courses & Programs</h1>
+        <p className="text-muted font-medium">Enroll in courses and book seminars/campaigns.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="premium-card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-extrabold text-navy flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary" /> Courses
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {courses.map((c) => (
+              <div key={c.id} className="rounded-2xl border border-white/50 bg-white/30 backdrop-blur-md px-4 py-3 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="text-sm font-extrabold text-navy truncate">{c.title}</div>
+                  <div className="text-xs text-muted font-medium truncate">{c.category}</div>
+                </div>
+                {enrollments[c.id] ? (
+                  <span className="inline-flex items-center gap-1 text-emerald text-xs font-black uppercase tracking-widest">
+                    <Check className="w-4 h-4" /> Enrolled
+                  </span>
+                ) : (
+                  <button onClick={() => enroll(c.id)} className="btn-primary py-2 px-4 text-xs font-black uppercase tracking-widest">
+                    Enroll
+                  </button>
+                )}
+              </div>
+            ))}
+            {courses.length === 0 && <div className="text-sm text-muted italic">No published courses yet.</div>}
+          </div>
+        </div>
+
+        <div className="premium-card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-extrabold text-navy flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-primary" /> Seminars & Campaigns
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {events.map((ev) => (
+              <div key={ev.id} className="rounded-2xl border border-white/50 bg-white/30 backdrop-blur-md px-4 py-3 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="text-sm font-extrabold text-navy truncate">{ev.title}</div>
+                  <div className="text-xs text-muted font-medium truncate">{ev.type.toUpperCase()} • {ev.location || 'Zanzibar'}</div>
+                </div>
+                {bookings[ev.id] ? (
+                  <span className="inline-flex items-center gap-1 text-emerald text-xs font-black uppercase tracking-widest">
+                    <Check className="w-4 h-4" /> Booked
+                  </span>
+                ) : (
+                  <button onClick={() => book(ev.id)} className="btn-outline bg-white/40 border-white/50 py-2 px-4 text-xs font-black uppercase tracking-widest">
+                    Book
+                  </button>
+                )}
+              </div>
+            ))}
+            {events.length === 0 && <div className="text-sm text-muted italic">No published seminars/campaigns yet.</div>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CandidateDashboard() {
   return (
     <DashboardLayout>
       <Routes>
         <Route index element={<Overview />} />
-        {/* Other sub-routes can be added here */}
-        <Route path="jobs" element={<div className="premium-card">Job List Coming Soon...</div>} />
-        <Route path="applications" element={<div className="premium-card">My Applications Coming Soon...</div>} />
-        <Route path="settings" element={<div className="premium-card">Profile Settings Coming Soon...</div>} />
+        <Route path="jobs" element={<JobBoard />} />
+        <Route path="jobs/:jobId" element={<JobDetails />} />
+        <Route path="applications" element={<ApplicationsPage />} />
+        <Route path="notices" element={<NoticesPage />} />
+        <Route path="events" element={<EventsPage />} />
+        <Route path="courses" element={<CoursesPage />} />
+        <Route path="messages" element={<MessagesPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<Overview />} />
       </Routes>
     </DashboardLayout>

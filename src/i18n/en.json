@@ -1,0 +1,49 @@
+{
+  "lang.en": "EN",
+  "lang.sw": "SW",
+
+  "common.logout": "Sign Out",
+  "common.search": "Search for jobs, tools, and info…",
+  "common.loading": "Loading…",
+  "common.save": "Save Changes",
+
+  "nav.dashboard": "Dashboard",
+  "nav.jobs": "Jobs",
+  "nav.applications": "My Applications",
+  "nav.notices": "Notices",
+  "nav.events": "Events",
+  "nav.courses": "Courses",
+  "nav.messages": "Messages",
+  "nav.settings": "Settings",
+
+  "nav.jobManagement": "Job Management",
+  "nav.candidateDirectory": "Candidate Directory",
+  "nav.createJob": "Create Job",
+  "nav.communications": "Communications",
+
+  "nav.executiveStats": "Executive Stats",
+  "nav.approvals": "Approvals",
+  "nav.analytics": "Global Analytics",
+  "nav.userDirectory": "User Directory",
+  "nav.systemSecurity": "System Security",
+  "nav.internalComms": "Internal Comms",
+  "nav.systemConfig": "System Config",
+
+  "nav.diagnostics": "Diagnostics",
+  "nav.securityLogs": "Security Logs",
+  "nav.userLookup": "User Lookup",
+
+  "login.portal": "Official Access Portal",
+  "login.phone": "Phone Number",
+  "login.username": "Username",
+  "login.pin": "Access Pin",
+  "login.staySignedIn": "Stay Signed In",
+  "login.reset": "Reset Access",
+  "login.enter": "Enter Portal",
+
+  "role.candidate": "Candidate",
+  "role.controller": "Controller",
+  "role.chairman": "Chairman",
+  "role.developer": "Developer"
+}
+

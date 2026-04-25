@@ -6,16 +6,23 @@ import { auth, db } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { DISTRICTS, WARDS, District } from '../constants/locations';
 import { User, Phone, Lock, UserPlus, ArrowRight, Loader2, MapPin, Briefcase, AlertCircle } from 'lucide-react';
-import { getAuthProvidersConsoleUrl } from '../lib/firebaseConsole';
-import { useAuth } from '../contexts/AuthContext';
-import { DEMO_PIN, DEMO_USERS } from '../lib/demoSession';
+import { getAuthProvidersConsoleUrl } from '../lib/firebaseConsole'; 
+import { useAuth } from '../contexts/AuthContext'; 
+import { DEMO_PIN, DEMO_USERS } from '../lib/demoSession'; 
+import { readViteEnv, readViteEnvBool } from '../lib/env';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function Register() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
-  const { signInDemo } = useAuth();
+  const navigate = useNavigate(); 
+  const { signInDemo } = useAuth(); 
+  const { setThemeRole } = useTheme();
+
+  React.useEffect(() => {
+    setThemeRole('candidate');
+  }, [setThemeRole]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -48,9 +55,10 @@ export default function Register() {
     setError('');
 
     try {
-      const email = `${formData.phoneNumber}@fursalink.znz`;
-      const userCredential = await createUserWithEmailAndPassword(auth, email, formData.password);
-      const user = userCredential.user;
+      const domain = readViteEnv('VITE_LOGIN_EMAIL_DOMAIN') || 'fursalink.znz';
+      const email = `${formData.phoneNumber}@${domain}`; 
+      const userCredential = await createUserWithEmailAndPassword(auth, email, formData.password); 
+      const user = userCredential.user; 
 
       // Create profile in Firestore
       await setDoc(doc(db, 'users', user.uid), {
@@ -86,11 +94,13 @@ export default function Register() {
     }
   };
 
-  const handleDemoCreate = () => {
-    const demo = DEMO_USERS.candidate;
-    signInDemo({ uid: 'demo_candidate', role: 'candidate', fullName: demo.fullName, phoneNumber: demo.phoneNumber });
-    navigate('/candidate');
-  };
+  const handleDemoCreate = () => { 
+    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', import.meta.env.DEV);
+    if (!demoEnabled) return;
+    const demo = DEMO_USERS.candidate; 
+    signInDemo({ uid: 'demo_candidate', role: 'candidate', fullName: demo.fullName, phoneNumber: demo.phoneNumber }); 
+    navigate('/candidate'); 
+  }; 
 
   return (
     <div className="min-h-screen bg-sky py-20 px-6 flex items-center justify-center relative overflow-hidden font-sans">

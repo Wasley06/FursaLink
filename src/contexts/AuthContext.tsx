@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { UserProfile } from '../types';
 import { clearDemoSession, DemoSession, getDemoSession, setDemoSession } from '../lib/demoSession';
+import { normalizeStoredRole } from '../lib/roles';
+import { readViteEnvBool } from '../lib/env';
 
 interface AuthContextType {
   user: User | { uid: string } | null;
@@ -22,15 +24,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
-    const existingDemo = getDemoSession();
-    if (existingDemo) {
+    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', import.meta.env.DEV);
+    const existingDemo = demoEnabled ? getDemoSession() : null;
+    if (demoEnabled && existingDemo) {
       setIsDemo(true);
       setUser({ uid: existingDemo.uid } as any);
       setProfile({
         id: existingDemo.uid,
         fullName: existingDemo.fullName,
         phoneNumber: existingDemo.phoneNumber,
-        role: existingDemo.role === 'chairman' ? ('admin' as any) : (existingDemo.role as any),
+        role: normalizeStoredRole(existingDemo.role),
         profileProgress: 100,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -47,7 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const docRef = doc(db, 'users', user.uid);
         const unsubscribeProfile = onSnapshot(docRef, (docSnap) => {
           if (docSnap.exists()) {
-            setProfile({ id: docSnap.id, ...docSnap.data() } as UserProfile);
+            const raw = { id: docSnap.id, ...docSnap.data() } as UserProfile;
+            setProfile({ ...raw, role: normalizeStoredRole((raw as any).role) } as UserProfile);
           } else {
             setProfile(null);
           }
@@ -75,6 +79,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInDemo = (session: DemoSession) => {
+    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', import.meta.env.DEV);
+    if (!demoEnabled) return;
     setDemoSession(session);
     setIsDemo(true);
     setUser({ uid: session.uid } as any);
@@ -82,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: session.uid,
       fullName: session.fullName,
       phoneNumber: session.phoneNumber,
-      role: session.role === 'chairman' ? ('admin' as any) : (session.role as any),
+      role: normalizeStoredRole(session.role),
       profileProgress: 100,
       createdAt: new Date(),
       updatedAt: new Date(),

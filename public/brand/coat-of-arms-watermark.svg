@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#0B4F8A" stop-opacity="0.28"/>
+      <stop offset="70%" stop-color="#0B4F8A" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#0B4F8A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="900" height="900" fill="none"/>
+  <circle cx="450" cy="450" r="330" fill="url(#g)"/>
+  <circle cx="450" cy="450" r="270" fill="none" stroke="#0B4F8A" stroke-opacity="0.22" stroke-width="10"/>
+  <path d="M450 250c90 0 170 55 200 140 30 85 0 185-75 240-75 55-175 55-250 0-75-55-105-155-75-240 30-85 110-140 200-140z"
+        fill="none" stroke="#0B4F8A" stroke-opacity="0.24" stroke-width="12"/>
+  <text x="450" y="470" text-anchor="middle" font-family="Inter, Poppins, Arial, sans-serif" font-size="44" font-weight="800" fill="#0B4F8A" fill-opacity="0.20">
+    ZANZIBAR
+  </text>
+  <text x="450" y="520" text-anchor="middle" font-family="Inter, Poppins, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="4" fill="#0B4F8A" fill-opacity="0.18">
+    COAT OF ARMS • WATERMARK
+  </text>
+</svg>
+

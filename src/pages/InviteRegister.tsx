@@ -8,12 +8,15 @@ import { AlertCircle, ArrowRight, KeyRound, Loader2, Lock, Phone, ShieldCheck, U
 import { getAuthProvidersConsoleUrl } from '../lib/firebaseConsole';
 import { useAuth } from '../contexts/AuthContext';
 import { DEMO_PIN, DEMO_USERS } from '../lib/demoSession';
+import { readViteEnv, readViteEnvBool } from '../lib/env';
+import { useTheme } from '../contexts/ThemeContext';
 
-type InviteRole = 'controller' | 'chairman';
+type InviteRole = 'controller' | 'chairman' | 'developer';
 
 function normalizeInviteRole(role?: string): InviteRole | null {
   if (role === 'controller') return 'controller';
   if (role === 'chairman' || role === 'admin') return 'chairman';
+  if (role === 'developer' || role === 'dev') return 'developer';
   return null;
 }
 
@@ -21,7 +24,9 @@ function expectedRoleCode(role: InviteRole) {
   const raw =
     role === 'controller'
       ? (import.meta as any).env?.VITE_INVITE_CONTROLLER_CODE
-      : (import.meta as any).env?.VITE_INVITE_CHAIRMAN_CODE;
+      : role === 'chairman'
+        ? (import.meta as any).env?.VITE_INVITE_CHAIRMAN_CODE
+        : (import.meta as any).env?.VITE_INVITE_DEVELOPER_CODE;
   return typeof raw === 'string' ? raw : '';
 }
 
@@ -31,6 +36,7 @@ export default function InviteRegister() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { signInDemo } = useAuth();
+  const { setThemeRole } = useTheme();
 
   const inviteCodeFromUrl = searchParams.get('code') || '';
 
@@ -48,8 +54,13 @@ export default function InviteRegister() {
   const roleLabel = useMemo(() => {
     if (inviteRole === 'controller') return 'Controller';
     if (inviteRole === 'chairman') return 'Chairman';
+    if (inviteRole === 'developer') return 'Developer';
     return 'Officer';
   }, [inviteRole]);
+
+  React.useEffect(() => {
+    if (inviteRole) setThemeRole(inviteRole);
+  }, [inviteRole, setThemeRole]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -67,7 +78,7 @@ export default function InviteRegister() {
     const expectedCode = expectedRoleCode(inviteRole);
     if (!expectedCode) {
       setError(
-        'Invite registration is not configured. Set VITE_INVITE_CONTROLLER_CODE / VITE_INVITE_CHAIRMAN_CODE.',
+        'Invite registration is not configured. Set VITE_INVITE_CONTROLLER_CODE / VITE_INVITE_CHAIRMAN_CODE / VITE_INVITE_DEVELOPER_CODE.',
       );
       return;
     }
@@ -80,11 +91,12 @@ export default function InviteRegister() {
     setError('');
 
     try {
-      const email = `${formData.phoneNumber}@fursalink.znz`;
+      const domain = readViteEnv('VITE_LOGIN_EMAIL_DOMAIN') || 'fursalink.znz';
+      const email = `${formData.phoneNumber}@${domain}`;
       const userCredential = await createUserWithEmailAndPassword(auth, email, formData.password);
       const user = userCredential.user;
 
-      const role = inviteRole === 'controller' ? 'controller' : 'admin';
+      const role = inviteRole === 'controller' ? 'controller' : inviteRole === 'chairman' ? 'chairman' : 'developer';
 
       await setDoc(doc(db, 'users', user.uid), {
         fullName: formData.fullName,
@@ -116,6 +128,9 @@ export default function InviteRegister() {
 
   const handleDemoCreate = () => {
     if (!inviteRole) return;
+    const demoEnabled = readViteEnvBool('VITE_ENABLE_DEMO_AUTH', import.meta.env.DEV);
+    if (!demoEnabled) return;
+    if (inviteRole === 'developer') return;
     const demoKey = inviteRole === 'controller' ? 'controller' : 'chairman';
     const demo = DEMO_USERS[demoKey];
     signInDemo({ uid: `demo_${demoKey}`, role: demoKey as any, fullName: demo.fullName, phoneNumber: demo.phoneNumber });

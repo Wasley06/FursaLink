@@ -19,62 +19,74 @@ import {
   PlusCircle,
   BarChart3,
   Users,
-  Shield
+  Shield,
+  BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useI18n } from '../contexts/I18nContext';
 
 interface SidebarItem {
   icon: any;
-  label: string;
+  labelKey: string;
   path: string;
 }
 
 const candidateItems: SidebarItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/candidate' },
-  { icon: Briefcase, label: 'Jobs', path: '/candidate/jobs' },
-  { icon: FileText, label: 'My Applications', path: '/candidate/applications' },
-  { icon: bellIcon, label: 'Notices', path: '/candidate/notices' },
-  { icon: Calendar, label: 'Events', path: '/candidate/events' },
-  { icon: MessageSquare, label: 'Messages', path: '/candidate/messages' },
-  { icon: Settings, label: 'Settings', path: '/candidate/settings' },
+  { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/candidate' },
+  { icon: Briefcase, labelKey: 'nav.jobs', path: '/candidate/jobs' },
+  { icon: FileText, labelKey: 'nav.applications', path: '/candidate/applications' },
+  { icon: Bell, labelKey: 'nav.notices', path: '/candidate/notices' },
+  { icon: Calendar, labelKey: 'nav.events', path: '/candidate/events' },
+  { icon: BookOpenIcon, labelKey: 'nav.courses', path: '/candidate/courses' },
+  { icon: MessageSquare, labelKey: 'nav.messages', path: '/candidate/messages' },
+  { icon: Settings, labelKey: 'nav.settings', path: '/candidate/settings' },
 ];
 
 const controllerItems: SidebarItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/controller' },
-  { icon: Briefcase, label: 'Job Management', path: '/controller/jobs' },
-  { icon: User, label: 'Candidates', path: '/controller/candidates' },
-  { icon: PlusCircle, label: 'Create Job', path: '/controller/jobs/new' },
-  { icon: Bell, label: 'Post Notice', path: '/controller/notices' },
-  { icon: MessageSquare, label: 'Communication Central', path: '/controller/messages' },
-  { icon: Settings, label: 'Settings', path: '/controller/settings' },
+  { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/controller' },
+  { icon: Briefcase, labelKey: 'nav.jobManagement', path: '/controller/jobs' },
+  { icon: Users, labelKey: 'nav.candidateDirectory', path: '/controller/candidates' },
+  { icon: PlusCircle, labelKey: 'nav.createJob', path: '/controller/jobs/new' },
+  { icon: Bell, labelKey: 'nav.notices', path: '/controller/notices' },
+  { icon: MessageSquare, labelKey: 'nav.communications', path: '/controller/messages' },
+  { icon: Settings, labelKey: 'nav.settings', path: '/controller/settings' },
 ];
 
 const adminItems: SidebarItem[] = [
-  { icon: LayoutDashboard, label: 'Executive Stats', path: '/chairman' },
-  { icon: BarChart3, label: 'Global Analytics', path: '/chairman/analytics' },
-  { icon: Users, label: 'User Directory', path: '/chairman/users' },
-  { icon: Shield, label: 'System Security', path: '/chairman/security' },
-  { icon: MessageSquare, label: 'Internal Comms', path: '/chairman/messages' },
-  { icon: Settings, label: 'System Config', path: '/chairman/settings' },
+  { icon: LayoutDashboard, labelKey: 'nav.executiveStats', path: '/chairman' },
+  { icon: FileText, labelKey: 'nav.approvals', path: '/chairman/approvals' },
+  { icon: BarChart3, labelKey: 'nav.analytics', path: '/chairman/analytics' },
+  { icon: Users, labelKey: 'nav.userDirectory', path: '/chairman/users' },
+  { icon: Shield, labelKey: 'nav.systemSecurity', path: '/chairman/security' },
+  { icon: MessageSquare, labelKey: 'nav.internalComms', path: '/chairman/messages' },
+  { icon: Settings, labelKey: 'nav.systemConfig', path: '/chairman/settings' },
 ];
 
-// Define icon mapping outside to avoid circular dependency or missing imports
-function bellIcon(props: any) { return <Bell {...props} />; }
+const developerItems: SidebarItem[] = [
+  { icon: LayoutDashboard, labelKey: 'nav.diagnostics', path: '/developer' },
+  { icon: Shield, labelKey: 'nav.securityLogs', path: '/developer/security' },
+  { icon: Users, labelKey: 'nav.userLookup', path: '/developer/users' },
+  { icon: Settings, labelKey: 'nav.settings', path: '/developer/settings' },
+];
+
+function BookOpenIcon(props: any) { return <BookOpen {...props} />; }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { profile, signOut } = useAuth();
+  const { lang, setLang, t } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const roleLabel = profile?.role === 'admin' ? 'chairman' : profile?.role;
+  const roleLabel = profile?.role;
 
   const getItems = () => {
     if (!profile) return [];
     switch (profile.role) {
       case 'candidate': return candidateItems;
       case 'controller': return controllerItems;
-      case 'admin': return adminItems;
+      case 'chairman': return adminItems;
+      case 'developer': return developerItems;
       default: return [];
     }
   };
@@ -104,7 +116,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const Icon = item.icon;
             return (
               <Link 
-                key={item.label} 
+                key={item.path} 
                 to={item.path}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-white/60 text-sm",
@@ -112,7 +124,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               >
                 <Icon className={cn("w-5 h-5", isActive ? "text-white" : "group-hover:text-gold")} />
-                <span>{item.label}</span>
+                <span>{t(item.labelKey)}</span>
               </Link>
             );
           })}
@@ -128,7 +140,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="flex items-center gap-3 px-4 py-3 rounded-xl w-full text-white/40 hover:text-white hover:bg-danger/20 transition-all text-sm font-medium"
           >
             <LogOut className="w-5 h-5" />
-            <span>Sign Out</span>
+            <span>{t('common.logout')}</span>
           </button>
         </div>
       </aside>
@@ -146,14 +158,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
             <div className="hidden md:flex items-center gap-3 bg-white/40 px-4 py-2 rounded-xl border border-white/50 backdrop-blur-md w-96">
               <Search className="w-5 h-5 text-muted" />
-              <input type="text" placeholder="Search for jobs, tools, and info..." className="bg-transparent outline-none w-full text-sm text-navy" />
+              <input type="text" placeholder={t('common.search')} className="bg-transparent outline-none w-full text-sm text-navy" />
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="hidden lg:flex items-center bg-sky rounded-xl p-1 border border-border">
-              <button className="px-3 py-1 text-[10px] font-bold bg-white text-primary rounded-lg shadow-sm">EN</button>
-              <button className="px-3 py-1 text-[10px] font-bold text-muted hover:text-navy">SW</button>
+              <button
+                onClick={() => setLang('en')}
+                className={cn(
+                  'px-3 py-1 text-[10px] font-bold rounded-lg shadow-sm',
+                  lang === 'en' ? 'bg-white text-primary' : 'text-muted hover:text-navy',
+                )}
+              >
+                {t('lang.en')}
+              </button>
+              <button
+                onClick={() => setLang('sw')}
+                className={cn(
+                  'px-3 py-1 text-[10px] font-bold rounded-lg shadow-sm',
+                  lang === 'sw' ? 'bg-white text-primary' : 'text-muted hover:text-navy',
+                )}
+              >
+                {t('lang.sw')}
+              </button>
             </div>
             <button className="relative p-2.5 rounded-xl hover:bg-sky transition-colors text-muted hover:text-primary">
               <Bell className="w-6 h-6" />
@@ -163,7 +191,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex items-center gap-3 pl-2">
               <div className="text-right hidden sm:block">
                 <div className="text-sm font-bold text-navy leading-tight">{profile?.fullName}</div>
-                <div className="text-[10px] font-bold text-primary uppercase tracking-widest">{roleLabel}</div>
+                <div className="text-[10px] font-bold text-primary uppercase tracking-widest">{roleLabel ? t(`role.${roleLabel}`) : ''}</div>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-sky border-2 border-border flex items-center justify-center overflow-hidden">
                 {profile?.photoUrl ? (
@@ -211,7 +239,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <nav className="flex-1 p-6 space-y-2">
                 {menuItems.map((item) => (
                   <Link 
-                    key={item.label} 
+                    key={item.path} 
                     to={item.path}
                     onClick={() => setMobileMenuOpen(false)}
                     className={cn(
@@ -220,7 +248,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     )}
                   >
                     <item.icon className="w-5 h-5" />
-                    <span className="font-medium">{item.label}</span>
+                    <span className="font-medium">{t(item.labelKey)}</span>
                   </Link>
                 ))}
               </nav>

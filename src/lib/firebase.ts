@@ -7,10 +7,11 @@ import {
   getDocFromServer,
   getFirestore,
 } from 'firebase/firestore';
-import firebaseConfig from '../../firebase-applet-config.json';
+import { getFirebaseConfig, getFirestoreDatabaseId } from './firebaseConfig';
 
+const firebaseConfig = getFirebaseConfig();
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(app, getFirestoreDatabaseId());
 export const auth = getAuth(app);
 
 // Offline-first: enable Firestore local persistence so the app works offline and syncs automatically when online.

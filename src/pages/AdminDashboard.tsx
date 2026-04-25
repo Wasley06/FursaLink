@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
-import { collection, query, getDocs, limit, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, limit, orderBy, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Job, Application, UserProfile } from '../types';
@@ -40,18 +40,50 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { seedDemoCandidates } from '../lib/seeder';
+import ApprovalsPage from './chairman/ApprovalsPage';
+import ChairmanUsersPage from './chairman/UsersPage';
+import SecurityPage from './chairman/SecurityPage';
+import AnalyticsPage from './chairman/AnalyticsPage';
+import ChairmanMessagesPage from './chairman/MessagesPage';
+import ChairmanSettingsPage from './chairman/SettingsPage';
 
 const COLORS = ['#0B4F8A', '#1F8A4D', '#D9A441', '#60A5FA', '#14B8A6', '#F59E0B'];
 
 function ExecutiveStats() {
   const [seeding, setSeeding] = useState(false);
   const [data, setData] = useState({
-    totalApplicants: 12450,
-    accepted: 3200,
-    rejected: 1540,
-    pending: 7710,
-    jobs: 452
+    totalApplicants: 0,
+    accepted: 0,
+    rejected: 0,
+    pending: 0,
+    jobs: 0
   });
+  const [approvalQueue, setApprovalQueue] = useState<any[]>([]);
+
+  useEffect(() => {
+    const run = async () => {
+      const [uSnap, jSnap, aSnap, apprSnap] = await Promise.all([
+        getDocs(query(collection(db, 'users'), limit(2000))),
+        getDocs(query(collection(db, 'jobs'), limit(2000))),
+        getDocs(query(collection(db, 'applications'), limit(4000))),
+        getDocs(query(collection(db, 'approvalRequests'), orderBy('createdAt', 'desc'), limit(10))),
+      ]);
+      const users = uSnap.docs.map((d) => d.data() as any);
+      const apps = aSnap.docs.map((d) => d.data() as any);
+      const jobs = jSnap.docs.map((d) => d.data() as any);
+
+      setData({
+        totalApplicants: users.filter((u) => u.role === 'candidate').length,
+        accepted: apps.filter((a) => a.status === 'approved').length,
+        rejected: apps.filter((a) => a.status === 'rejected').length,
+        pending: apps.filter((a) => a.status === 'pending' || a.status === 'shortlisted').length,
+        jobs: jobs.filter((j) => j.status === 'published').length,
+      });
+
+      setApprovalQueue(apprSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    };
+    run();
+  }, []);
 
   const chartData = [
     { name: 'Mjini', applicants: 4500, approved: 1200 },
@@ -109,7 +141,7 @@ function ExecutiveStats() {
             {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
             Seed Demo Data
           </button>
-          <button className="btn-outline bg-white border-border text-navy flex items-center gap-2">
+          <button onClick={() => window.print()} className="btn-outline bg-white border-border text-navy flex items-center gap-2">
             <Download className="w-5 h-5" /> Export PDF
           </button>
           <button className="btn-primary flex items-center gap-2">
@@ -211,36 +243,37 @@ function ExecutiveStats() {
         <div className="lg:col-span-4 premium-card p-0 overflow-hidden">
           <div className="px-6 py-5 flex items-center justify-between border-b border-sky">
             <h3 className="text-base font-bold text-navy">Latest Approval Queue</h3>
-            <button className="btn-primary py-1.5 px-4 text-xs rounded-lg">View All Records</button>
+            <Link to="/chairman/approvals" className="btn-primary py-1.5 px-4 text-xs rounded-lg">View All Records</Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-sky/50">
                 <tr>
-                  <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Applicant Name</th>
-                  <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Position</th>
+                  <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Candidate</th>
+                  <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Occupation</th>
                   <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">District</th>
                   <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest text-right">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-sky">
-                {[
-                  { name: 'Saidi M. Juma', pos: 'Secondary Teacher', dist: 'Kaskazini A', status: 'Pending Signature' },
-                  { name: 'Aisha Bakari Othman', pos: 'Senior Radiologist', dist: 'Mjini', status: 'Approved' },
-                  { name: 'Mohammed Shein Ali', pos: 'ICT Systems Officer', dist: 'Magharibi B', status: 'In Security Audit' }
-                ].map((row, i) => (
-                  <tr key={i} className="hover:bg-sky/20 transition-colors">
-                    <td className="px-6 py-4 text-sm font-bold text-navy">{row.name}</td>
-                    <td className="px-6 py-4 text-sm text-muted">{row.pos}</td>
-                    <td className="px-6 py-4 text-sm text-muted">{row.dist}</td>
-                    <td className="px-6 py-4 text-right">
-                      <span className={cn(
-                        "status-pill",
-                        row.status === 'Approved' ? 'status-approved' : 'status-pending'
-                      )}>{row.status}</span>
-                    </td>
+                {approvalQueue.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-6 text-sm text-muted italic">No approval requests.</td>
                   </tr>
-                ))}
+                ) : (
+                  approvalQueue.map((row) => (
+                    <tr key={row.id} className="hover:bg-sky/20 transition-colors">
+                      <td className="px-6 py-4 text-sm font-bold text-navy">{row.userId}</td>
+                      <td className="px-6 py-4 text-sm text-muted">{row.occupation || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-muted">{row.district || '-'}</td>
+                      <td className="px-6 py-4 text-right">
+                        <span className={cn("status-pill", row.status === 'approved' ? 'status-approved' : row.status === 'rejected' ? 'status-rejected' : 'status-pending')}>
+                          {row.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -255,9 +288,12 @@ export default function AdminDashboard() {
     <DashboardLayout>
       <Routes>
         <Route index element={<ExecutiveStats />} />
-        <Route path="analytics" element={<div className="premium-card">Advanced Analytics Suite Coming Soon...</div>} />
-        <Route path="users" element={<div className="premium-card">Full User Directory Coming Soon...</div>} />
-        <Route path="security" element={<div className="premium-card">System Security Logs Coming Soon...</div>} />
+        <Route path="approvals" element={<ApprovalsPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="users" element={<ChairmanUsersPage />} />
+        <Route path="security" element={<SecurityPage />} />
+        <Route path="messages" element={<ChairmanMessagesPage />} />
+        <Route path="settings" element={<ChairmanSettingsPage />} />
         <Route path="*" element={<ExecutiveStats />} />
       </Routes>
     </DashboardLayout>
