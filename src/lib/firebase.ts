@@ -1,11 +1,24 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import {
+  doc,
+  enableIndexedDbPersistence,
+  enableMultiTabIndexedDbPersistence,
+  getDocFromServer,
+  getFirestore,
+} from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+
+// Offline-first: enable Firestore local persistence so the app works offline and syncs automatically when online.
+// (Multi-tab when available; falls back to single-tab persistence.)
+enableMultiTabIndexedDbPersistence(db).catch((e: any) => {
+  if (e?.code === 'failed-precondition' || e?.code === 'unimplemented') return;
+  enableIndexedDbPersistence(db).catch(() => {});
+});
 
 // Connectivity check as per integration guidelines
 async function testConnection() {

@@ -4,6 +4,7 @@ const path = require('path');
 const { autoUpdater } = require('electron-updater');
 
 const isDev = !app.isPackaged;
+const PROD_URL = process.env.FURSALINK_APP_URL || 'https://fursalink-zanzibar.vercel.app';
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -42,12 +43,17 @@ function createWindow() {
     }
   });
 
+  const indexHtml = path.join(__dirname, '..', 'dist', 'index.html');
+
   if (isDev) {
     win.loadURL('http://localhost:3000');
     win.webContents.openDevTools({ mode: 'detach' });
   } else {
-    const indexHtml = path.join(__dirname, '..', 'dist', 'index.html');
-    win.loadFile(indexHtml);
+    win.loadURL(PROD_URL).catch(() => win.loadFile(indexHtml));
+    win.webContents.on('did-fail-load', () => {
+      // Offline fallback: load the packaged web build.
+      win.loadFile(indexHtml).catch(() => {});
+    });
   }
 
   return win;
