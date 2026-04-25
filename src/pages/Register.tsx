@@ -6,6 +6,7 @@ import { auth, db } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { DISTRICTS, WARDS, District } from '../constants/locations';
 import { User, Phone, Lock, UserPlus, ArrowRight, Loader2, MapPin, Briefcase, AlertCircle } from 'lucide-react';
+import { getAuthProvidersConsoleUrl } from '../lib/firebaseConsole';
 
 export default function Register() {
   const [step, setStep] = useState(1);
@@ -68,7 +69,12 @@ export default function Register() {
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/operation-not-allowed') {
-        setError('Registration failed: Email/Password authentication is not enabled in Firebase Console.');
+        const url = getAuthProvidersConsoleUrl();
+        setError(
+          url
+            ? `Registration is disabled. Enable Email/Password in Firebase Auth: ${url}`
+            : 'Registration is disabled. Enable Email/Password in Firebase Authentication (Firebase Console).',
+        );
       } else {
         setError(err.message || 'Registration failed. Try a different phone number.');
       }

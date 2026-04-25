@@ -5,6 +5,7 @@ import { auth } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { AlertCircle, ArrowRight, Loader2, Lock, Phone, ShieldCheck } from 'lucide-react';
 import { labelForRole, normalizeLoginRole } from '../lib/roles';
+import { getAuthProvidersConsoleUrl } from '../lib/firebaseConsole';
 
 export default function Login() {
   const params = useParams();
@@ -39,7 +40,12 @@ export default function Login() {
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/operation-not-allowed') {
-        setError('Authentication method not enabled. Please enable "Email/Password" in your Firebase Auth Console.');
+        const url = getAuthProvidersConsoleUrl();
+        setError(
+          url
+            ? `Login is disabled. Enable Email/Password in Firebase Auth: ${url}`
+            : 'Login is disabled. Enable Email/Password in Firebase Authentication (Firebase Console).',
+        );
       } else {
         setError('Invalid phone number or password. Please try again.');
       }
@@ -183,4 +189,3 @@ export default function Login() {
     </div>
   );
 }
-

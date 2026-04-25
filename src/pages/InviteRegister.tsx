@@ -5,6 +5,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { AlertCircle, ArrowRight, KeyRound, Loader2, Lock, Phone, ShieldCheck, User } from 'lucide-react';
+import { getAuthProvidersConsoleUrl } from '../lib/firebaseConsole';
 
 type InviteRole = 'controller' | 'chairman';
 
@@ -96,7 +97,12 @@ export default function InviteRegister() {
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/operation-not-allowed') {
-        setError('Registration failed: Email/Password authentication is not enabled in Firebase Console.');
+        const url = getAuthProvidersConsoleUrl();
+        setError(
+          url
+            ? `Registration is disabled. Enable Email/Password in Firebase Auth: ${url}`
+            : 'Registration is disabled. Enable Email/Password in Firebase Authentication (Firebase Console).',
+        );
       } else {
         setError(err.message || 'Registration failed. Try a different phone number.');
       }
@@ -273,4 +279,3 @@ export default function InviteRegister() {
     </div>
   );
 }
-
