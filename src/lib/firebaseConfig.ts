@@ -1,5 +1,6 @@
 import type { FirebaseOptions } from 'firebase/app';
 import { readViteEnv } from './env';
+import jsonFallback from '../../firebase-applet-config.json';
 
 export type FirebaseConfig = FirebaseOptions & { firestoreDatabaseId?: string };
 
@@ -17,13 +18,26 @@ export function getFirebaseConfig(): FirebaseConfig {
 
   // Helpful diagnostics without leaking secrets
   if (!config.apiKey || !config.projectId || !config.appId) {
-    console.error(
+    // Fallback to packaged config to avoid a blank screen in misconfigured deployments.
+    // NOTE: You should still configure Vercel env vars for a clean production setup.
+    const fb: any = jsonFallback as any;
+    const fallback: FirebaseConfig = {
+      apiKey: fb.apiKey,
+      authDomain: fb.authDomain,
+      projectId: fb.projectId,
+      appId: fb.appId,
+      storageBucket: fb.storageBucket,
+      messagingSenderId: fb.messagingSenderId,
+      measurementId: fb.measurementId || undefined,
+      firestoreDatabaseId: fb.firestoreDatabaseId || undefined,
+    };
+    console.warn(
       [
-        'Firebase config missing. Set VITE_FIREBASE_* env vars (see .env.example).',
-        `projectId=${config.projectId || '(missing)'}`,
-        `appId=${config.appId || '(missing)'}`,
+        'Firebase env config missing; using firebase-applet-config.json fallback.',
+        'Set VITE_FIREBASE_* env vars in Vercel to remove this fallback.',
       ].join(' '),
     );
+    return fallback;
   }
 
   return config;
@@ -33,4 +47,3 @@ export function getFirestoreDatabaseId(): string | undefined {
   const dbId = readViteEnv('VITE_FIRESTORE_DATABASE_ID');
   return dbId ? dbId : undefined;
 }
-
