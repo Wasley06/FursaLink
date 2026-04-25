@@ -20,10 +20,12 @@ import {
   BarChart3,
   Users,
   Shield,
-  BookOpen
+  BookOpen,
+  TrendingUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useI18n } from '../contexts/I18nContext';
+import { startPresence, stopPresence } from '../lib/presence';
 
 interface SidebarItem {
   icon: any;
@@ -57,6 +59,8 @@ const adminItems: SidebarItem[] = [
   { icon: FileText, labelKey: 'nav.approvals', path: '/chairman/approvals' },
   { icon: BarChart3, labelKey: 'nav.analytics', path: '/chairman/analytics' },
   { icon: Users, labelKey: 'nav.userDirectory', path: '/chairman/users' },
+  { icon: Users, labelKey: 'nav.candidateDirectory', path: '/chairman/candidates' },
+  { icon: Briefcase, labelKey: 'nav.jobs', path: '/chairman/jobs' },
   { icon: Shield, labelKey: 'nav.systemSecurity', path: '/chairman/security' },
   { icon: MessageSquare, labelKey: 'nav.internalComms', path: '/chairman/messages' },
   { icon: Settings, labelKey: 'nav.systemConfig', path: '/chairman/settings' },
@@ -64,6 +68,7 @@ const adminItems: SidebarItem[] = [
 
 const developerItems: SidebarItem[] = [
   { icon: LayoutDashboard, labelKey: 'nav.diagnostics', path: '/developer' },
+  { icon: TrendingUp, labelKey: 'nav.presence', path: '/developer/presence' },
   { icon: Shield, labelKey: 'nav.securityLogs', path: '/developer/security' },
   { icon: Users, labelKey: 'nav.userLookup', path: '/developer/users' },
   { icon: Settings, labelKey: 'nav.settings', path: '/developer/settings' },
@@ -97,6 +102,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     await signOut();
     navigate('/');
   };
+
+  React.useEffect(() => {
+    if (!profile?.id) return;
+    startPresence(profile.id, { role: profile.role });
+    return () => stopPresence();
+  }, [profile?.id, profile?.role]);
 
   return (
     <div className="min-h-screen bg-sky flex">
@@ -183,7 +194,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {t('lang.sw')}
               </button>
             </div>
-            <button className="relative p-2.5 rounded-xl hover:bg-sky transition-colors text-muted hover:text-primary">
+            <button
+              onClick={() => {
+                if (!profile?.role) return;
+                if (profile.role === 'candidate') navigate('/candidate/notices');
+                else if (profile.role === 'controller') navigate('/controller/notices');
+                else if (profile.role === 'chairman') navigate('/chairman/approvals');
+                else if (profile.role === 'developer') navigate('/developer/security');
+              }}
+              className="relative p-2.5 rounded-xl hover:bg-sky transition-colors text-muted hover:text-primary"
+            >
               <Bell className="w-6 h-6" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full" />
             </button>

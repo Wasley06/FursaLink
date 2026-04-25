@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { DEMO_PIN, DEMO_USERS } from '../lib/demoSession'; 
 import { readViteEnv, readViteEnvBool } from '../lib/env';
 import { useTheme } from '../contexts/ThemeContext';
+import { buildCandidateIndex } from '../lib/candidateIndex';
 
 export default function Register() {
   const [step, setStep] = useState(1);
@@ -60,7 +61,7 @@ export default function Register() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, formData.password); 
       const user = userCredential.user; 
 
-      // Create profile in Firestore
+      // Create profile in Firestore 
       await setDoc(doc(db, 'users', user.uid), { 
         fullName: formData.fullName, 
         phoneNumber: formData.phoneNumber, 
@@ -73,6 +74,7 @@ export default function Register() {
         occupation: formData.occupation, 
         profileProgress: 50, 
         phoneVerified: false,
+        candidateIndex: buildCandidateIndex({ district: formData.district, ward: formData.ward, uid: user.uid }),
         createdAt: serverTimestamp(), 
         updatedAt: serverTimestamp(), 
       }); 

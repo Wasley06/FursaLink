@@ -31,6 +31,7 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
 
   if (!user) return <Navigate to="/login" />;
   if (profile && !allowedRoles.includes(profile.role)) return <Navigate to="/dashboard" />;
+  if (profile?.role === 'candidate' && profile.phoneVerified === false) return <Navigate to="/verify-phone" replace />;
 
   return <>{children}</>;
 }
@@ -40,6 +41,7 @@ function RoleRedirect() {
   
   if (loading) return null;
   if (!profile) return <Navigate to="/login" />;
+  if (profile.role === 'candidate' && profile.phoneVerified === false) return <Navigate to="/verify-phone" replace />;
 
   switch (profile.role) {
     case 'candidate': return <Navigate to="/candidate" />;

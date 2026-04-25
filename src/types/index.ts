@@ -8,6 +8,7 @@ export interface UserProfile {
   phoneNumber: string;
   role: StoredUserRole;
   phoneVerified?: boolean;
+  candidateIndex?: string;
   dob?: string;
   gender?: 'male' | 'female' | 'other';
   nationalId?: string;
@@ -19,6 +20,7 @@ export interface UserProfile {
   experience?: number;
   cvUrl?: string;
   photoUrl?: string;
+  address?: string;
   profileProgress: number;
   createdAt: any;
   updatedAt: any;

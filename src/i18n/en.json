@@ -32,6 +32,7 @@
   "nav.diagnostics": "Diagnostics",
   "nav.securityLogs": "Security Logs",
   "nav.userLookup": "User Lookup",
+  "nav.presence": "Presence",
 
   "login.portal": "Official Access Portal",
   "login.phone": "Phone Number",
@@ -46,4 +47,3 @@
   "role.chairman": "Chairman",
   "role.developer": "Developer"
 }
-

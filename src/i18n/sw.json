@@ -32,6 +32,7 @@
   "nav.diagnostics": "Uchunguzi",
   "nav.securityLogs": "Kumbukumbu za Usalama",
   "nav.userLookup": "Tafuta Mtumiaji",
+  "nav.presence": "Upo Hapo",
 
   "login.portal": "Lango Rasmi la Kuingia",
   "login.phone": "Namba ya Simu",
@@ -46,4 +47,3 @@
   "role.chairman": "Mwenyekiti",
   "role.developer": "Msanidi"
 }
-

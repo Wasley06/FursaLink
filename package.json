@@ -1,7 +1,7 @@
 {
   "name": "react-example",
   "private": true,
-  "version": "0.0.6",
+  "version": "0.0.7",
   "type": "module",
   "description": "FursaLink Zanzibar — Government employment management portal (web + desktop installers).",
   "scripts": {
@@ -16,6 +16,7 @@
     "desktop:dist:win": "npm run build && electron-builder --win --publish never",
     "desktop:dist:mac": "npm run build && electron-builder --mac --publish never",
     "seed:dev-user": "tsx scripts/create-dev-user.ts",
+    "seed:demo-dataset": "tsx scripts/seed-demo-dataset.ts",
     "desktop:publish": "npm run desktop:dist && powershell -ExecutionPolicy Bypass -File scripts/publish-github-release.ps1"
   },
   "main": "electron/main.cjs",

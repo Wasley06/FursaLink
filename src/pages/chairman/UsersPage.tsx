@@ -13,7 +13,9 @@ export default function ChairmanUsersPage() {
     const run = async () => {
       try {
         const snap = await getDocs(query(collection(db, 'users'), limit(300)));
-        setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() } as UserProfile)));
+        const all = snap.docs.map((d) => ({ id: d.id, ...d.data() } as UserProfile));
+        // Chairman directory: show higher-ups only (controllers + chairmen).
+        setItems(all.filter((u) => u.role === 'controller' || u.role === 'chairman'));
       } finally {
         setLoading(false);
       }
@@ -94,4 +96,3 @@ export default function ChairmanUsersPage() {
     </div>
   );
 }
-

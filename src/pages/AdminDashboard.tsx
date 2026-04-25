@@ -46,6 +46,9 @@ import SecurityPage from './chairman/SecurityPage';
 import AnalyticsPage from './chairman/AnalyticsPage';
 import ChairmanMessagesPage from './chairman/MessagesPage';
 import ChairmanSettingsPage from './chairman/SettingsPage';
+import ChairmanCandidatesPage from './chairman/CandidatesPage';
+import ChairmanJobsPage from './chairman/JobsPage';
+import ChairmanEditJobPage from './chairman/EditJobPage';
 
 const COLORS = ['#0B4F8A', '#1F8A4D', '#D9A441', '#60A5FA', '#14B8A6', '#F59E0B'];
 
@@ -291,6 +294,9 @@ export default function AdminDashboard() {
         <Route path="approvals" element={<ApprovalsPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="users" element={<ChairmanUsersPage />} />
+        <Route path="candidates" element={<ChairmanCandidatesPage />} />
+        <Route path="jobs" element={<ChairmanJobsPage />} />
+        <Route path="jobs/:jobId/edit" element={<ChairmanEditJobPage />} />
         <Route path="security" element={<SecurityPage />} />
         <Route path="messages" element={<ChairmanMessagesPage />} />
         <Route path="settings" element={<ChairmanSettingsPage />} />

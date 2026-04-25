@@ -4,6 +4,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import DeveloperSecurityPage from './developer/SecurityPage';
 import DeveloperUsersPage from './developer/UsersPage';
 import DeveloperSettingsPage from './developer/SettingsPage';
+import PresencePage from './developer/PresencePage';
 
 function Overview() {
   return (
@@ -39,6 +40,7 @@ export default function DeveloperDashboard() {
     <DashboardLayout>
       <Routes>
         <Route index element={<Overview />} />
+        <Route path="presence" element={<PresencePage />} />
         <Route path="security" element={<DeveloperSecurityPage />} />
         <Route path="users" element={<DeveloperUsersPage />} />
         <Route path="settings" element={<DeveloperSettingsPage />} />

@@ -41,22 +41,21 @@ service cloud.firestore {
         (isController() && resource.data.role == 'candidate' && resource.data.district == getAuthUser().district)
       );
 
-      // Create: Self-registration allowed for candidate and invite-only roles.
-      // NOTE: For strong security, enforce invite validation server-side (e.g., Cloud Functions + custom claims).
-      allow create: if isSignedIn() && isValidUser(incoming()) && isOwner(userId) && incoming().createdAt == request.time;
+      // Create:
+      // - Self-registration: doc id must equal uid
+      // - Seed/demo: chairman/developer can create demo users only (isDemo=true)
+      allow create: if isSignedIn() && isValidUser(incoming()) && (
+        (isOwner(userId) && incoming().createdAt == request.time) ||
+        ((isChairman() || isDeveloper()) && incoming().isDemo == true)
+      );
 
-      // Update: Self (restricted fields) or Controller/Admin
+      // Update: Self (role can't change) or Controller/Chairman
       allow update: if isSignedIn() && (
-        (isOwner(userId) &&
-          incoming().role == existing().role &&
-          incoming().district == existing().district &&
+        (isOwner(userId) && incoming().role == existing().role &&
           (
-            // Allow OTP verification flag only after linking a phone credential.
             (incoming().phoneVerified == existing().phoneVerified) ||
             (incoming().phoneVerified == true && request.auth.token.phone_number != null)
-          ) &&
-          incoming().updatedAt == request.time
-        ) ||
+          ) && incoming().updatedAt == request.time) ||
         isChairman() ||
         (isController() && existing().district == getAuthUser().district && incoming().role == existing().role)
       );
@@ -162,6 +161,15 @@ service cloud.firestore {
     match /auditLogs/{logId} {
       allow read: if isSignedIn() && (isChairman() || isDeveloper());
       allow create: if isSignedIn() && (isChairman() || isDeveloper() || isController());
+    }
+
+    // -----------------------------------------------------------
+    // PRESENCE (ONLINE/OFFLINE)
+    // -----------------------------------------------------------
+    match /presence/{userId} {
+      allow read: if isSignedIn() && (isChairman() || isDeveloper());
+      allow create, update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if false;
     }
   }
 }
