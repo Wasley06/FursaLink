@@ -1,7 +1,7 @@
 import 'dotenv/config';
-import { initializeApp } from 'firebase/app';
+import { deleteApp, initializeApp } from 'firebase/app';
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getFirestore, serverTimestamp, setDoc, terminate } from 'firebase/firestore';
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
@@ -70,6 +70,14 @@ async function main() {
   );
 
   console.log(`Upserted profile role=developer for uid=${uid}`);
+
+  // Ensure the Node process exits (Firestore keeps background connections open).
+  try {
+    await terminate(db as any);
+  } catch {}
+  try {
+    await deleteApp(app);
+  } catch {}
 }
 
 main().catch((e) => {
