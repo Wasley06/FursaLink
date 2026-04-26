@@ -105,6 +105,24 @@ export default function Login() {
             ? `Login is disabled. Enable Email/Password in Firebase Auth: ${url}`
             : 'Login is disabled. Enable Email/Password in Firebase Authentication (Firebase Console).',
         );
+      } else if (selectedRole === 'developer') {
+        const email = developerIdentifierToEmail(username);
+        if (err.code === 'auth/user-not-found') {
+          setError(
+            [
+              'Developer account not found in Firebase Authentication.',
+              `Create user with email "${email}" and password "Kingsley06#".`,
+            ].join(' '),
+          );
+        } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+          setError(`Incorrect password for "${email}".`);
+        } else if (err.code === 'auth/invalid-email') {
+          setError('Invalid email/username format.');
+        } else if (err.code === 'auth/too-many-requests') {
+          setError('Too many attempts. Please wait a few minutes and try again.');
+        } else {
+          setError(`Developer login failed (${err.code || 'unknown error'}).`);
+        }
       } else {
         setError('Invalid phone number or password. Please try again.');
       }
