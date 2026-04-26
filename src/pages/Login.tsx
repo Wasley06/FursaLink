@@ -10,7 +10,7 @@ import {
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { motion } from 'motion/react';
-import { AlertCircle, ArrowRight, Loader2, Lock, Phone, ShieldCheck } from 'lucide-react';
+import { AlertCircle, ArrowRight, Loader2, Lock, Phone, ShieldCheck, User } from 'lucide-react';
 import { labelForRole, normalizeLoginRole, normalizeStoredRole } from '../lib/roles';
 import { getAuthProvidersConsoleUrl } from '../lib/firebaseConsole';
 import { DEMO_PIN, DEMO_USERS } from '../lib/demoSession';
@@ -61,6 +61,12 @@ export default function Login() {
     return `${slug}@${loginDomain}`;
   };
 
+  const developerIdentifierToEmail = (raw: string) => {
+    const cleaned = raw.trim();
+    if (cleaned.includes('@')) return cleaned.toLowerCase();
+    return usernameToEmail(cleaned);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -68,7 +74,7 @@ export default function Login() {
     setInfo('');
 
     try {
-      const email = selectedRole === 'developer' ? usernameToEmail(username) : `${phoneNumber}@${loginDomain}`;
+      const email = selectedRole === 'developer' ? developerIdentifierToEmail(username) : `${phoneNumber}@${loginDomain}`;
       await setPersistence(auth, staySignedIn ? browserLocalPersistence : browserSessionPersistence);
       await signInWithEmailAndPassword(auth, email, password);
 
@@ -76,10 +82,15 @@ export default function Login() {
       const uid = auth.currentUser?.uid;
       if (uid) {
         const snap = await getDoc(doc(db, 'users', uid));
+        if (!snap.exists()) {
+          await auth.signOut();
+          setError(`Account profile not found. Create Firestore document users/${uid} with role=${selectedRole}.`);
+          return;
+        }
         const actualRole = normalizeStoredRole((snap.data() as any)?.role);
         if (actualRole !== selectedRole) {
           await auth.signOut();
-          setError(`Access denied for ${labelForRole(selectedRole)} portal.`);
+          setError(`Access denied: this account role is ${labelForRole(actualRole)} (not ${labelForRole(selectedRole)}).`);
           return;
         }
       }
@@ -106,7 +117,7 @@ export default function Login() {
     setError('');
     setInfo('');
     try {
-      const email = selectedRole === 'developer' ? usernameToEmail(username) : `${phoneNumber}@${loginDomain}`;
+      const email = selectedRole === 'developer' ? developerIdentifierToEmail(username) : `${phoneNumber}@${loginDomain}`;
       if (!email || email.startsWith('@')) {
         setError('Enter your phone number (or username) first.');
         return;
@@ -207,11 +218,11 @@ export default function Login() {
                   {t('login.username')}
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                   <input
                     type="text"
                     required
-                    placeholder="e.g., Wasley DEV"
+                    placeholder="e.g., Wasley DEV or wasley.dev@fursalink.znz"
                     className="glass-input pl-11"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
