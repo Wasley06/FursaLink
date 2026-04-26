@@ -1,14 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { Settings } from 'lucide-react';
+import { FileText, ImageUp, Settings } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { DISTRICTS, WARDS, type District } from '../../constants/locations';
 import { db } from '../../lib/firebase';
 import { buildCandidateIndex } from '../../lib/candidateIndex';
+import { uploadUserFile } from '../../lib/uploads';
 
 export default function SettingsPage() {
   const { profile } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [uploadPct, setUploadPct] = useState<number>(0);
   const [error, setError] = useState('');
 
   const initial = useMemo(
@@ -54,8 +56,74 @@ export default function SettingsPage() {
     }
   };
 
+  const uploadPhoto = async (file: File | null) => {
+    if (!profile || !file) return;
+    setSaving(true);
+    setError('');
+    setUploadPct(0);
+    try {
+      const up = await uploadUserFile({
+        uid: profile.id,
+        file,
+        kind: 'profile',
+        nameHint: 'candidate-photo',
+        onProgress: setUploadPct,
+      });
+      setForm((p) => ({ ...p, photoUrl: up.url }));
+      await updateDoc(doc(db, 'users', profile.id), { photoUrl: up.url, updatedAt: serverTimestamp() } as any);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to upload photo.');
+    } finally {
+      setSaving(false);
+      setUploadPct(0);
+    }
+  };
+
+  const uploadCv = async (file: File | null) => {
+    if (!profile || !file) return;
+    setSaving(true);
+    setError('');
+    setUploadPct(0);
+    try {
+      const up = await uploadUserFile({ uid: profile.id, file, kind: 'cv', nameHint: 'cv', onProgress: setUploadPct });
+      await updateDoc(doc(db, 'users', profile.id), { cvUrl: up.url, updatedAt: serverTimestamp() } as any);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to upload CV.');
+    } finally {
+      setSaving(false);
+      setUploadPct(0);
+    }
+  };
+
+  const uploadDoc = async (file: File | null) => {
+    if (!profile || !file) return;
+    setSaving(true);
+    setError('');
+    setUploadPct(0);
+    try {
+      const up = await uploadUserFile({ uid: profile.id, file, kind: 'document', nameHint: file.name, onProgress: setUploadPct });
+      // Minimal: store latest extra document URL. (Can be extended to an array.)
+      await updateDoc(doc(db, 'users', profile.id), { documentsUrl: up.url, updatedAt: serverTimestamp() } as any);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to upload document.');
+    } finally {
+      setSaving(false);
+      setUploadPct(0);
+    }
+  };
+
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-3xl relative">
+      <div
+        className="hidden lg:block pointer-events-none absolute -right-10 top-20 w-[340px] h-[340px] opacity-[0.06]"
+        style={{
+          backgroundImage: 'var(--watermark-image)',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+        }}
+      />
+
       <div className="premium-card">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-sky border border-white/50">
@@ -70,6 +138,7 @@ export default function SettingsPage() {
 
       <div className="premium-card space-y-4">
         {error && <div className="text-sm text-danger font-bold">{error}</div>}
+        {saving && uploadPct > 0 && <div className="text-xs text-muted font-medium">Uploading: {uploadPct}%</div>}
 
         <div className="grid md:grid-cols-2 gap-4">
           <div>
@@ -83,11 +152,7 @@ export default function SettingsPage() {
 
           <div>
             <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2">District</label>
-            <select
-              className="input-field"
-              value={form.district}
-              onChange={(e) => setForm((p) => ({ ...p, district: e.target.value as District, ward: '' }))}
-            >
+            <select className="input-field" value={form.district} onChange={(e) => setForm((p) => ({ ...p, district: e.target.value as District, ward: '' }))}>
               <option value="">Select district</option>
               {DISTRICTS.map((d) => (
                 <option key={d} value={d}>
@@ -113,8 +178,12 @@ export default function SettingsPage() {
             <input type="date" className="input-field" value={form.dob} onChange={(e) => setForm((p) => ({ ...p, dob: e.target.value }))} />
           </div>
           <div>
-            <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2">Photo URL</label>
-            <input className="input-field" value={form.photoUrl} onChange={(e) => setForm((p) => ({ ...p, photoUrl: e.target.value }))} placeholder="https://…" />
+            <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2">Profile Photo</label>
+            <label className="btn-outline w-full py-3 cursor-pointer gap-2">
+              <ImageUp className="w-4 h-4" />
+              <span className="text-xs font-black uppercase tracking-widest">Upload Photo</span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => uploadPhoto(e.target.files?.[0] || null)} />
+            </label>
           </div>
 
           <div>
@@ -139,13 +208,36 @@ export default function SettingsPage() {
             className="input-field py-3"
             value={form.skills}
             onChange={(e) => setForm((p) => ({ ...p, skills: e.target.value }))}
-            placeholder="e.g., Excel, Nursing, Customer Service…"
+            placeholder="e.g., Excel, Nursing, Customer Service..."
           />
         </div>
 
         <button disabled={saving} onClick={save} className="btn-primary w-full py-3">
-          {saving ? 'Saving…' : 'Save Changes'}
+          {saving ? 'Saving...' : 'Save Changes'}
         </button>
+      </div>
+
+      <div className="premium-card space-y-4">
+        <div className="text-sm font-extrabold text-navy">Documents</div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2">CV (PDF)</label>
+            <label className="btn-outline w-full py-3 cursor-pointer gap-2">
+              <FileText className="w-4 h-4" />
+              <span className="text-xs font-black uppercase tracking-widest">Upload CV</span>
+              <input type="file" accept="application/pdf" className="hidden" onChange={(e) => uploadCv(e.target.files?.[0] || null)} />
+            </label>
+          </div>
+          <div>
+            <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2">Other Document</label>
+            <label className="btn-outline w-full py-3 cursor-pointer gap-2">
+              <FileText className="w-4 h-4" />
+              <span className="text-xs font-black uppercase tracking-widest">Upload Document</span>
+              <input type="file" accept=".pdf,image/*" className="hidden" onChange={(e) => uploadDoc(e.target.files?.[0] || null)} />
+            </label>
+          </div>
+        </div>
+        <div className="text-xs text-muted font-medium">Files are stored securely in Firebase Storage and linked to your account.</div>
       </div>
     </div>
   );

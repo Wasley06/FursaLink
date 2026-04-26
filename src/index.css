@@ -106,7 +106,7 @@ body::before {
   }
   
   .premium-card {
-    @apply rounded-[18px] shadow-premium p-6 border border-white/35 flex flex-col;
+    @apply rounded-[18px] shadow-premium p-6 border border-white/35 flex flex-col relative overflow-hidden;
     background: rgba(255, 255, 255, 0.55);
     backdrop-filter: blur(14px) saturate(1.25);
     -webkit-backdrop-filter: blur(14px) saturate(1.25);
@@ -174,4 +174,23 @@ body::before {
 
 .ai-tag {
     @apply bg-gradient-to-r from-gold to-warning text-white px-2 py-0.5 rounded text-[10px] font-black uppercase ml-2;
+}
+
+/* Subtle watermark inside cards to avoid large plain white areas */
+.premium-card::after {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  background-image: var(--watermark-image);
+  background-repeat: no-repeat;
+  background-position: 92% 24%;
+  background-size: 280px;
+  opacity: 0.035;
+  z-index: 0;
+}
+
+.premium-card > * {
+  position: relative;
+  z-index: 1;
 }

@@ -23,9 +23,10 @@ export function labelForRole(role: LoginRole) {
 }
 
 export function normalizeStoredRole(role: StoredUserRole | string | null | undefined): UserRole {
-  if (role === 'admin') return 'chairman';
-  if (role === 'chairman') return 'chairman';
-  if (role === 'controller') return 'controller';
-  if (role === 'developer') return 'developer';
+  const raw = typeof role === 'string' ? role.trim().toLowerCase() : '';
+  if (raw === 'admin') return 'chairman';
+  if (raw === 'chairman') return 'chairman';
+  if (raw === 'controller') return 'controller';
+  if (raw === 'developer' || raw === 'dev') return 'developer';
   return 'candidate';
 }

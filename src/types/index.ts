@@ -21,6 +21,7 @@ export interface UserProfile {
   occupation?: string;
   experience?: number;
   cvUrl?: string;
+  documentsUrl?: string;
   photoUrl?: string;
   address?: string;
   profileProgress: number;

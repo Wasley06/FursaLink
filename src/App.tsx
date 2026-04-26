@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { I18nProvider } from './contexts/I18nContext';
 import { SystemConfigProvider, useSystemConfig } from './contexts/SystemConfigContext';
+import { NotificationsProvider } from './contexts/NotificationsContext';
 
 // Lazy load pages
 const Landing = React.lazy(() => import('./pages/Landing'));
@@ -68,53 +69,55 @@ export default function App() {
       <SystemConfigProvider>
         <I18nProvider>
           <ThemeProvider>
-            <BrowserRouter>
-              <Suspense fallback={
-                <div className="min-h-screen flex items-center justify-center bg-sky">
-                  <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                </div>
-              }>
-                <Routes>
-                  <Route path="/" element={<Landing />} />
-                  <Route path="/maintenance" element={<Maintenance />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/login/:role" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/register/invite/:role" element={<InviteRegister />} />
-                  <Route path="/verify-phone" element={<VerifyPhone />} />
-                  <Route path="/reset-otp" element={<ResetOtp />} />
-                  <Route path="/dashboard" element={<RoleRedirect />} />
-                  
-                  <Route path="/candidate/*" element={
-                    <ProtectedRoute allowedRoles={['candidate']}>
-                      <CandidateDashboard />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/controller/*" element={
-                    <ProtectedRoute allowedRoles={['controller']}>
-                      <ControllerDashboard />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/chairman/*" element={
-                    <ProtectedRoute allowedRoles={['chairman']}>
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  } />
+            <NotificationsProvider>
+              <BrowserRouter>
+                <Suspense fallback={
+                  <div className="min-h-screen flex items-center justify-center bg-sky">
+                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                  </div>
+                }>
+                  <Routes>
+                    <Route path="/" element={<Landing />} />
+                    <Route path="/maintenance" element={<Maintenance />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/login/:role" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/register/invite/:role" element={<InviteRegister />} />
+                    <Route path="/verify-phone" element={<VerifyPhone />} />
+                    <Route path="/reset-otp" element={<ResetOtp />} />
+                    <Route path="/dashboard" element={<RoleRedirect />} />
+                    
+                    <Route path="/candidate/*" element={
+                      <ProtectedRoute allowedRoles={['candidate']}>
+                        <CandidateDashboard />
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/controller/*" element={
+                      <ProtectedRoute allowedRoles={['controller']}>
+                        <ControllerDashboard />
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/chairman/*" element={
+                      <ProtectedRoute allowedRoles={['chairman']}>
+                        <AdminDashboard />
+                      </ProtectedRoute>
+                    } />
 
-                  <Route path="/admin/*" element={<Navigate to="/chairman" replace />} />
+                    <Route path="/admin/*" element={<Navigate to="/chairman" replace />} />
 
-                  <Route path="/developer/*" element={
-                    <ProtectedRoute allowedRoles={['developer']}>
-                      <DeveloperDashboard />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
-              </Suspense>
-            </BrowserRouter>
+                    <Route path="/developer/*" element={
+                      <ProtectedRoute allowedRoles={['developer']}>
+                        <DeveloperDashboard />
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="*" element={<Navigate to="/" />} />
+                  </Routes>
+                </Suspense>
+              </BrowserRouter>
+            </NotificationsProvider>
           </ThemeProvider>
         </I18nProvider>
       </SystemConfigProvider>

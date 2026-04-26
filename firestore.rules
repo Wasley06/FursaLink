@@ -188,5 +188,31 @@ service cloud.firestore {
       allow create, update: if isSignedIn() && request.auth.uid == userId;
       allow delete: if false;
     }
+
+    // -----------------------------------------------------------
+    // NOTIFICATIONS
+    // -----------------------------------------------------------
+    match /notifications/{notifId} {
+      allow get, list: if isSignedIn() && (
+        resource.data.recipientId == request.auth.uid ||
+        isChairman() ||
+        isDeveloper()
+      );
+
+      allow create: if isSignedIn() &&
+        incoming().senderId == request.auth.uid &&
+        incoming().recipientId is string &&
+        incoming().title is string &&
+        incoming().title.size() > 0 &&
+        incoming().title.size() <= 140 &&
+        incoming().createdAt == request.time;
+
+      // Recipient can mark as read only.
+      allow update: if isSignedIn() &&
+        resource.data.recipientId == request.auth.uid &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['read', 'updatedAt']);
+
+      allow delete: if isChairman() || isDeveloper();
+    }
   }
 }

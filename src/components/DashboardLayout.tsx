@@ -26,6 +26,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useI18n } from '../contexts/I18nContext';
 import { startPresence, stopPresence } from '../lib/presence';
+import { useNotifications } from '../contexts/NotificationsContext';
 
 interface SidebarItem {
   icon: any;
@@ -80,9 +81,11 @@ function BookOpenIcon(props: any) { return <BookOpen {...props} />; }
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { profile, signOut } = useAuth();
   const { lang, setLang, t } = useI18n();
+  const { items: notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   const roleLabel = profile?.role;
 
@@ -103,6 +106,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     await signOut();
     navigate('/');
   };
+
+  React.useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest?.('[data-notif-root="1"]')) return;
+      setNotifOpen(false);
+    };
+    document.addEventListener('click', onDoc);
+    return () => document.removeEventListener('click', onDoc);
+  }, []);
 
   React.useEffect(() => {
     if (!profile?.id) return;
@@ -160,7 +174,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="h-20 bg-white/40 border-b border-white/50 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-40">
+        <header className="h-20 bg-white/40 border-b border-white/50 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-40 relative">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setMobileMenuOpen(true)}
@@ -197,17 +211,68 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <button
               onClick={() => {
-                if (!profile?.role) return;
-                if (profile.role === 'candidate') navigate('/candidate/notices');
-                else if (profile.role === 'controller') navigate('/controller/notices');
-                else if (profile.role === 'chairman') navigate('/chairman/approvals');
-                else if (profile.role === 'developer') navigate('/developer/security');
+                setNotifOpen((p) => !p);
               }}
               className="relative p-2.5 rounded-xl hover:bg-sky transition-colors text-muted hover:text-primary"
+              data-notif-root="1"
             >
               <Bell className="w-6 h-6" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full" />
+              {unreadCount > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full" />}
             </button>
+
+            {notifOpen && (
+              <div
+                data-notif-root="1"
+                className="absolute right-6 top-[74px] w-[360px] max-w-[92vw] rounded-2xl border border-white/50 bg-white/70 backdrop-blur-xl shadow-2xl overflow-hidden z-[80]"
+              >
+                <div className="px-5 py-4 flex items-center justify-between border-b border-white/60">
+                  <div>
+                    <div className="text-sm font-extrabold text-navy">Notifications</div>
+                    <div className="text-xs text-muted font-medium">{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</div>
+                  </div>
+                  <button
+                    onClick={() => markAllRead()}
+                    className="text-xs font-black uppercase tracking-widest text-primary hover:underline disabled:opacity-50"
+                    disabled={unreadCount === 0}
+                  >
+                    Mark all read
+                  </button>
+                </div>
+
+                <div className="max-h-[420px] overflow-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-5 text-sm text-muted font-medium">No notifications yet.</div>
+                  ) : (
+                    <div className="divide-y divide-sky/60">
+                      {notifications.map((n) => (
+                        <button
+                          key={n.id}
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              if (n.read !== true) await markRead(n.id);
+                            } finally {
+                              setNotifOpen(false);
+                              const path = (n.targetPath || '').trim();
+                              if (path) navigate(path);
+                            }
+                          }}
+                          className="w-full text-left px-5 py-4 hover:bg-sky/30 transition-colors"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={cn('mt-1 w-2.5 h-2.5 rounded-full', n.read === true ? 'bg-border' : 'bg-danger')} />
+                            <div className="min-w-0">
+                              <div className="text-sm font-extrabold text-navy truncate">{n.title}</div>
+                              {n.message && <div className="text-xs text-muted font-medium mt-1 line-clamp-2">{n.message}</div>}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="h-10 w-px bg-border mx-2" />
             <div className="flex items-center gap-3 pl-2">
               <div className="text-right hidden sm:block">
