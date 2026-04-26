@@ -58,7 +58,8 @@ async function main() {
     doc(db, 'users', uid),
     {
       fullName: devUsername,
-      phoneNumber: 'DEV',
+      // Must satisfy Firestore rules (min length); developer logs in via username->email.
+      phoneNumber: '0700000000',
       role: 'developer',
       profileProgress: 100,
       createdAt: serverTimestamp(),
@@ -75,4 +76,3 @@ main().catch((e) => {
   console.error(e);
   process.exitCode = 1;
 });
-
