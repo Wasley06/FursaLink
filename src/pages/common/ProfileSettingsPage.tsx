@@ -67,15 +67,16 @@ export default function ProfileSettingsPage({ title }: { title: string }) {
         onProgress: setUploadPct,
       });
 
-      setForm((p) => ({ ...p, photoUrl: up.url }));
+      setForm((p) => ({ ...p, photoUrl: up.url || '' }));
 
       await updateDoc(doc(db, 'users', profile.id), {
-        photoUrl: up.url,
+        photoUrl: up.url || '',
+        photoRef: up.ref,
         updatedAt: serverTimestamp(),
       } as any);
 
       if (auth.currentUser) {
-        await updateProfile(auth.currentUser, { photoURL: up.url });
+        await updateProfile(auth.currentUser, { photoURL: up.url || '' });
       }
 
       setInfo('Photo uploaded.');
@@ -189,4 +190,3 @@ export default function ProfileSettingsPage({ title }: { title: string }) {
     </div>
   );
 }
-

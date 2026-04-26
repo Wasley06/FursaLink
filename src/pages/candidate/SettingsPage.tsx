@@ -5,13 +5,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import { DISTRICTS, WARDS, type District } from '../../constants/locations';
 import { db } from '../../lib/firebase';
 import { buildCandidateIndex } from '../../lib/candidateIndex';
-import { uploadUserFile } from '../../lib/uploads';
+import { getSignedDownloadUrl, uploadUserFile } from '../../lib/uploads';
 
 export default function SettingsPage() {
   const { profile } = useAuth();
   const [saving, setSaving] = useState(false);
   const [uploadPct, setUploadPct] = useState<number>(0);
   const [error, setError] = useState('');
+  const [cvRef, setCvRef] = useState<any>(profile?.cvRef);
+  const [documentsRef, setDocumentsRef] = useState<any>(profile?.documentsRef);
 
   const initial = useMemo(
     () => ({
@@ -32,6 +34,8 @@ export default function SettingsPage() {
   const [form, setForm] = useState(initial);
 
   React.useEffect(() => setForm(initial), [initial]);
+  React.useEffect(() => setCvRef(profile?.cvRef), [profile?.cvRef]);
+  React.useEffect(() => setDocumentsRef(profile?.documentsRef), [profile?.documentsRef]);
 
   const wards = form.district ? WARDS[form.district] || [] : [];
 
@@ -69,8 +73,8 @@ export default function SettingsPage() {
         nameHint: 'candidate-photo',
         onProgress: setUploadPct,
       });
-      setForm((p) => ({ ...p, photoUrl: up.url }));
-      await updateDoc(doc(db, 'users', profile.id), { photoUrl: up.url, updatedAt: serverTimestamp() } as any);
+      setForm((p) => ({ ...p, photoUrl: up.url || '' }));
+      await updateDoc(doc(db, 'users', profile.id), { photoUrl: up.url || '', photoRef: up.ref, updatedAt: serverTimestamp() } as any);
     } catch (e: any) {
       setError(e?.message || 'Failed to upload photo.');
     } finally {
@@ -86,7 +90,8 @@ export default function SettingsPage() {
     setUploadPct(0);
     try {
       const up = await uploadUserFile({ uid: profile.id, file, kind: 'cv', nameHint: 'cv', onProgress: setUploadPct });
-      await updateDoc(doc(db, 'users', profile.id), { cvUrl: up.url, updatedAt: serverTimestamp() } as any);
+      setCvRef(up.ref);
+      await updateDoc(doc(db, 'users', profile.id), { cvRef: up.ref, cvUrl: '', updatedAt: serverTimestamp() } as any);
     } catch (e: any) {
       setError(e?.message || 'Failed to upload CV.');
     } finally {
@@ -102,8 +107,9 @@ export default function SettingsPage() {
     setUploadPct(0);
     try {
       const up = await uploadUserFile({ uid: profile.id, file, kind: 'document', nameHint: file.name, onProgress: setUploadPct });
-      // Minimal: store latest extra document URL. (Can be extended to an array.)
-      await updateDoc(doc(db, 'users', profile.id), { documentsUrl: up.url, updatedAt: serverTimestamp() } as any);
+      // Minimal: store latest extra document ref. (Can be extended to an array.)
+      setDocumentsRef(up.ref);
+      await updateDoc(doc(db, 'users', profile.id), { documentsRef: up.ref, documentsUrl: '', updatedAt: serverTimestamp() } as any);
     } catch (e: any) {
       setError(e?.message || 'Failed to upload document.');
     } finally {
@@ -227,6 +233,23 @@ export default function SettingsPage() {
               <span className="text-xs font-black uppercase tracking-widest">Upload CV</span>
               <input type="file" accept="application/pdf" className="hidden" onChange={(e) => uploadCv(e.target.files?.[0] || null)} />
             </label>
+            {!!cvRef && (
+              <button
+                type="button"
+                className="btn-outline w-full py-3 mt-2"
+                disabled={saving}
+                onClick={async () => {
+                  try {
+                    const url = await getSignedDownloadUrl(cvRef);
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  } catch (e: any) {
+                    setError(e?.message || 'Failed to open CV.');
+                  }
+                }}
+              >
+                Open CV
+              </button>
+            )}
           </div>
           <div>
             <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2">Other Document</label>
@@ -235,11 +258,27 @@ export default function SettingsPage() {
               <span className="text-xs font-black uppercase tracking-widest">Upload Document</span>
               <input type="file" accept=".pdf,image/*" className="hidden" onChange={(e) => uploadDoc(e.target.files?.[0] || null)} />
             </label>
+            {!!documentsRef && (
+              <button
+                type="button"
+                className="btn-outline w-full py-3 mt-2"
+                disabled={saving}
+                onClick={async () => {
+                  try {
+                    const url = await getSignedDownloadUrl(documentsRef);
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  } catch (e: any) {
+                    setError(e?.message || 'Failed to open document.');
+                  }
+                }}
+              >
+                Open Document
+              </button>
+            )}
           </div>
         </div>
-        <div className="text-xs text-muted font-medium">Files are stored securely in Firebase Storage and linked to your account.</div>
+        <div className="text-xs text-muted font-medium">Files are stored securely and linked to your account.</div>
       </div>
     </div>
   );
 }
-

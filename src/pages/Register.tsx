@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { DISTRICTS, WARDS, District } from '../constants/locations';
@@ -12,6 +12,7 @@ import { DEMO_PIN, DEMO_USERS } from '../lib/demoSession';
 import { readViteEnv, readViteEnvBool } from '../lib/env';
 import { useTheme } from '../contexts/ThemeContext';
 import { buildCandidateIndex } from '../lib/candidateIndex';
+import { uploadUserFile } from '../lib/uploads';
 
 export default function Register() {
   const [step, setStep] = useState(1);
@@ -39,8 +40,8 @@ export default function Register() {
     education: '',
     occupation: '',
     address: '',
-    photoUrl: '',
   });
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -78,13 +79,28 @@ export default function Register() {
         education: formData.education, 
         occupation: formData.occupation, 
         address: formData.address || '',
-        photoUrl: formData.photoUrl || '',
+        photoUrl: '',
+        photoRef: null,
         profileProgress: 50, 
         phoneVerified: false,
         candidateIndex: buildCandidateIndex({ district: formData.district, ward: formData.ward, uid: user.uid }),
         createdAt: serverTimestamp(), 
         updatedAt: serverTimestamp(), 
       }); 
+
+      if (photoFile) {
+        try {
+          const up = await uploadUserFile({ uid: user.uid, file: photoFile, kind: 'profile', nameHint: 'candidate-photo' });
+          await updateDoc(doc(db, 'users', user.uid), {
+            photoUrl: up.url || '',
+            photoRef: up.ref,
+            updatedAt: serverTimestamp(),
+          } as any);
+        } catch (e) {
+          // Non-blocking: registration succeeds even if optional upload fails.
+          console.warn('Photo upload failed during registration', e);
+        }
+      }
  
       navigate('/verify-phone', { replace: true });
     } catch (err: any) { 
@@ -287,15 +303,12 @@ export default function Register() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Profile Photo URL (Optional)</label>
-                <input
-                  type="url"
-                  name="photoUrl"
-                  className="glass-input"
-                  placeholder="https://..."
-                  value={formData.photoUrl}
-                  onChange={handleChange}
-                />
+                <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Profile Photo (Optional)</label>
+                <label className="btn-outline w-full py-4 cursor-pointer justify-center">
+                  <span className="text-[11px] font-black uppercase tracking-widest">Upload Photo</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
+                </label>
+                {photoFile && <div className="mt-2 text-xs text-muted font-medium">Selected: {photoFile.name}</div>}
               </div>
 
               <div className="flex gap-3 pt-6">

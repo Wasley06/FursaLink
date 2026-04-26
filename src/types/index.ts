@@ -2,6 +2,13 @@ export type UserRole = 'candidate' | 'controller' | 'chairman' | 'developer';
 // Back-compat for older documents and UI code
 export type StoredUserRole = UserRole | 'admin';
 
+export type StorageProvider = 'firebase' | 'supabase';
+export interface StoredFileRef {
+  provider: StorageProvider;
+  bucket?: string;
+  path: string;
+}
+
 export interface UserProfile {
   id: string;
   fullName: string;
@@ -23,6 +30,9 @@ export interface UserProfile {
   cvUrl?: string;
   documentsUrl?: string;
   photoUrl?: string;
+  cvRef?: StoredFileRef;
+  documentsRef?: StoredFileRef;
+  photoRef?: StoredFileRef;
   address?: string;
   profileProgress: number;
   createdAt: any;
