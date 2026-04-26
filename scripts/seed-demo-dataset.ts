@@ -144,6 +144,7 @@ async function createController(auth: any, db: any, domain: string, input: { dis
     district: input.district,
     phoneVerified: true,
     profileProgress: 100,
+    isDemo: true,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -229,4 +230,3 @@ main().catch((e) => {
   console.error(e);
   process.exitCode = 1;
 });
-

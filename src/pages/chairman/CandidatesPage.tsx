@@ -106,9 +106,12 @@ export default function ChairmanCandidatesPage() {
                 <thead className="bg-sky/50">
                   <tr>
                     <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Index</th>
-                    <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Name</th>
+                    <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Candidate</th>
                     <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">District / Ward</th>
+                    <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">DOB</th>
+                    <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Education</th>
                     <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Occupation</th>
+                    <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Address</th>
                     <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest text-right">Profile</th>
                   </tr>
                 </thead>
@@ -116,11 +119,24 @@ export default function ChairmanCandidatesPage() {
                   {filtered.slice(0, 500).map((c) => (
                     <tr key={c.id} className="hover:bg-sky/20 transition-colors">
                       <td className="px-6 py-4 text-xs font-black text-navy">{c.candidateIndex || '-'}</td>
-                      <td className="px-6 py-4 text-sm font-bold text-navy">{c.fullName}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-sky border border-border overflow-hidden flex items-center justify-center">
+                            {c.photoUrl ? <img src={c.photoUrl} className="w-full h-full object-cover" alt="" /> : <span className="text-xs font-black text-primary">C</span>}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-navy truncate">{c.fullName}</div>
+                            <div className="text-[11px] text-muted font-medium truncate">{c.phoneNumber}</div>
+                          </div>
+                        </div>
+                      </td>
                       <td className="px-6 py-4 text-sm text-muted">
                         {c.district || '-'} / {c.ward || '-'}
                       </td>
+                      <td className="px-6 py-4 text-sm text-muted">{c.dob || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-muted">{c.education || '-'}</td>
                       <td className="px-6 py-4 text-sm text-muted">{c.occupation || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-muted max-w-[260px] truncate">{c.address || '-'}</td>
                       <td className="px-6 py-4 text-right">
                         <span className="status-pill status-approved">{c.profileProgress || 0}%</span>
                       </td>
@@ -135,4 +151,3 @@ export default function ChairmanCandidatesPage() {
     </div>
   );
 }
-

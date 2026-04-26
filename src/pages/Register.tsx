@@ -29,6 +29,7 @@ export default function Register() {
   const [formData, setFormData] = useState({
     fullName: '',
     phoneNumber: '',
+    contactEmail: '',
     password: '',
     confirmPassword: '',
     dob: '',
@@ -37,6 +38,8 @@ export default function Register() {
     ward: '',
     education: '',
     occupation: '',
+    address: '',
+    photoUrl: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -57,13 +60,15 @@ export default function Register() {
 
     try {
       const domain = readViteEnv('VITE_LOGIN_EMAIL_DOMAIN') || 'fursalink.znz';
-      const email = `${formData.phoneNumber}@${domain}`; 
-      const userCredential = await createUserWithEmailAndPassword(auth, email, formData.password); 
-      const user = userCredential.user; 
-
+      const email = `${formData.phoneNumber}@${domain}`;  
+      const userCredential = await createUserWithEmailAndPassword(auth, email, formData.password);  
+      const user = userCredential.user;  
+ 
       // Create profile in Firestore 
       await setDoc(doc(db, 'users', user.uid), { 
         fullName: formData.fullName, 
+        email,
+        contactEmail: formData.contactEmail || '',
         phoneNumber: formData.phoneNumber, 
         role: 'candidate', 
         dob: formData.dob, 
@@ -72,6 +77,8 @@ export default function Register() {
         ward: formData.ward, 
         education: formData.education, 
         occupation: formData.occupation, 
+        address: formData.address || '',
+        photoUrl: formData.photoUrl || '',
         profileProgress: 50, 
         phoneVerified: false,
         candidateIndex: buildCandidateIndex({ district: formData.district, ward: formData.ward, uid: user.uid }),
@@ -175,6 +182,20 @@ export default function Register() {
                     <input type="tel" name="phoneNumber" required className="glass-input pl-11" placeholder="077xxxxxxx" value={formData.phoneNumber} onChange={handleChange} />
                   </div>
                 </div>
+                <div>
+                  <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Email Address (Optional)</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                    <input
+                      type="email"
+                      name="contactEmail"
+                      className="glass-input pl-11"
+                      placeholder="you@example.com"
+                      value={formData.contactEmail}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-5">
@@ -231,6 +252,19 @@ export default function Register() {
               </div>
 
               <div>
+                <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Address</label>
+                <input
+                  type="text"
+                  name="address"
+                  required
+                  className="glass-input"
+                  placeholder="e.g., Mkele, Zanzibar"
+                  value={formData.address}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
                 <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Education Level</label>
                 <select name="education" required className="glass-input text-navy font-bold appearance-none cursor-pointer" value={formData.education} onChange={handleChange}>
                   <option value="">Select Highest Level</option>
@@ -250,6 +284,18 @@ export default function Register() {
                   <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                   <input type="text" name="occupation" required className="glass-input pl-11" placeholder="e.g., Clinical Officer" value={formData.occupation} onChange={handleChange} />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Profile Photo URL (Optional)</label>
+                <input
+                  type="url"
+                  name="photoUrl"
+                  className="glass-input"
+                  placeholder="https://..."
+                  value={formData.photoUrl}
+                  onChange={handleChange}
+                />
               </div>
 
               <div className="flex gap-3 pt-6">

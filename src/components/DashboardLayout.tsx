@@ -71,6 +71,7 @@ const developerItems: SidebarItem[] = [
   { icon: TrendingUp, labelKey: 'nav.presence', path: '/developer/presence' },
   { icon: Shield, labelKey: 'nav.securityLogs', path: '/developer/security' },
   { icon: Users, labelKey: 'nav.userLookup', path: '/developer/users' },
+  { icon: Settings, labelKey: 'nav.systemTools', path: '/developer/system' },
   { icon: Settings, labelKey: 'nav.settings', path: '/developer/settings' },
 ];
 

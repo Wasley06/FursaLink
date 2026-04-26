@@ -94,6 +94,8 @@ export default function CandidatesPage() {
                     <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">DOB</th>
                     <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Education</th>
                     <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Occupation</th>
+                    <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Address</th>
+                    <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest">Email</th>
                     <th className="px-6 py-3 text-[10px] font-black text-primary uppercase tracking-widest text-right">Profile</th>
                   </tr>
                 </thead>
@@ -116,6 +118,8 @@ export default function CandidatesPage() {
                       <td className="px-6 py-4 text-sm text-muted">{c.dob || '-'}</td>
                       <td className="px-6 py-4 text-sm text-muted">{c.education || '-'}</td>
                       <td className="px-6 py-4 text-sm text-muted">{c.occupation || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-muted max-w-[240px] truncate">{c.address || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-muted max-w-[240px] truncate">{c.contactEmail || c.email || '-'}</td>
                       <td className="px-6 py-4 text-right">
                         <span className="status-pill status-approved">{c.profileProgress || 0}%</span>
                       </td>

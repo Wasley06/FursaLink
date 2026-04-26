@@ -5,6 +5,8 @@ export type StoredUserRole = UserRole | 'admin';
 export interface UserProfile {
   id: string;
   fullName: string;
+  email?: string;
+  contactEmail?: string;
   phoneNumber: string;
   role: StoredUserRole;
   phoneVerified?: boolean;

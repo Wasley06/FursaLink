@@ -5,7 +5,10 @@
 
 const VERSION = (() => {
   try {
-    return new URL(self.location.href).searchParams.get('v') || 'v1';
+    const url = new URL(self.location.href);
+    const v = url.searchParams.get('v') || 'v1';
+    const b = url.searchParams.get('b') || '';
+    return b ? `${v}-${b}` : v;
   } catch {
     return 'v1';
   }

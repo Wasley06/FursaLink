@@ -5,6 +5,7 @@ import DeveloperSecurityPage from './developer/SecurityPage';
 import DeveloperUsersPage from './developer/UsersPage';
 import DeveloperSettingsPage from './developer/SettingsPage';
 import PresencePage from './developer/PresencePage';
+import DeveloperSystemPage from './developer/SystemPage';
 
 function Overview() {
   return (
@@ -43,6 +44,7 @@ export default function DeveloperDashboard() {
         <Route path="presence" element={<PresencePage />} />
         <Route path="security" element={<DeveloperSecurityPage />} />
         <Route path="users" element={<DeveloperUsersPage />} />
+        <Route path="system" element={<DeveloperSystemPage />} />
         <Route path="settings" element={<DeveloperSettingsPage />} />
         <Route path="*" element={<Overview />} />
       </Routes>

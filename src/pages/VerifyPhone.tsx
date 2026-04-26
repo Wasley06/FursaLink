@@ -139,4 +139,3 @@ export default function VerifyPhone() {
     </div>
   );
 }
-

@@ -262,11 +262,19 @@ export default function Login() {
                   onChange={(e) => setStaySignedIn(e.target.checked)}
                   className="rounded-md text-primary focus:ring-primary w-4 h-4 border-sky bg-white/50"
                 />
-                <span>Stay Signed In</span>
+                <span>{t('login.staySignedIn')}</span>
               </label>
-              <button type="button" onClick={handleReset} className="text-primary hover:underline">
-                {t('login.reset')}
-              </button>
+              <div className="flex items-center gap-3">
+                {selectedRole === 'candidate' ? (
+                  <Link to="/reset-otp" className="text-primary hover:underline">
+                    {t('resetOtp.link')}
+                  </Link>
+                ) : (
+                  <button type="button" onClick={handleReset} className="text-primary hover:underline">
+                    {t('login.reset')}
+                  </button>
+                )}
+              </div>
             </div>
 
             <button

@@ -27,8 +27,12 @@ $assets = @(
   "release/*Setup*$Version*.exe.blockmap"
 )
 
-& gh release view $tag --repo $Repo *> $null 2>&1
-$exists = $LASTEXITCODE -eq 0
+try {
+  & gh release view $tag --repo $Repo *> $null 2>&1
+  $exists = $LASTEXITCODE -eq 0
+} catch {
+  $exists = $false
+}
 if (-not $exists) {
   Write-Host "Creating release $tag (draft)..."
   & gh release create $tag --repo $Repo --title $tag --notes "Auto-update release for desktop installers." --draft

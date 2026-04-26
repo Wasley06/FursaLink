@@ -15,7 +15,8 @@ export type Permission =
   | 'notices:read'
   | 'notices:write'
   | 'security:read'
-  | 'config:write';
+  | 'config:write'
+  | 'demo:delete';
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   candidate: ['jobs:read', 'applications:read', 'applications:write', 'messages:read', 'messages:write', 'notices:read'],
@@ -34,8 +35,10 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   chairman: [
     'jobs:read',
+    'jobs:write',
     'applications:read',
     'approvals:read',
+    'approvals:write',
     'approvals:decide',
     'users:read',
     'users:write',
@@ -46,7 +49,24 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'security:read',
     'config:write',
   ],
-  developer: ['jobs:read', 'users:read', 'messages:read', 'security:read'],
+  developer: [
+    'jobs:read',
+    'jobs:write',
+    'applications:read',
+    'applications:write',
+    'approvals:read',
+    'approvals:write',
+    'approvals:decide',
+    'users:read',
+    'users:write',
+    'messages:read',
+    'messages:write',
+    'notices:read',
+    'notices:write',
+    'security:read',
+    'config:write',
+    'demo:delete',
+  ],
 };
 
 export function hasPermission(role: UserRole, permission: Permission): boolean {

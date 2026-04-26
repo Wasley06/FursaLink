@@ -57,8 +57,25 @@ service cloud.firestore {
             (incoming().phoneVerified == true && request.auth.token.phone_number != null)
           ) && incoming().updatedAt == request.time) ||
         isChairman() ||
+        isDeveloper() ||
         (isController() && existing().district == getAuthUser().district && incoming().role == existing().role)
       );
+
+      // Delete: Only demo documents can be deleted (safety).
+      allow delete: if isSignedIn() && (isChairman() || isDeveloper()) && existing().isDemo == true;
+    }
+
+    // -----------------------------------------------------------
+    // SYSTEM CONFIG (GLOBAL DOC)
+    // -----------------------------------------------------------
+    match /systemConfig/{docId} {
+      // Read the global configuration publicly so maintenance mode can be shown before login.
+      allow get: if docId == 'global';
+      allow list: if false;
+
+      // Write: Chairman + Developer only.
+      allow create, update: if isSignedIn() && (isChairman() || isDeveloper());
+      allow delete: if false;
     }
 
     // -----------------------------------------------------------
@@ -72,9 +89,9 @@ service cloud.firestore {
       }
 
       allow read: if isSignedIn();
-      allow create: if (isChairman() || isController()) && isValidJob(incoming()) && incoming().createdAt == request.time;
-      allow update: if (isChairman() || (isController() && existing().controllerId == request.auth.uid)) && isValidJob(incoming()) && incoming().updatedAt == request.time;
-      allow delete: if isChairman();
+      allow create: if (isChairman() || isDeveloper() || isController()) && isValidJob(incoming()) && incoming().createdAt == request.time;
+      allow update: if (isChairman() || isDeveloper() || (isController() && existing().controllerId == request.auth.uid)) && isValidJob(incoming()) && incoming().updatedAt == request.time;
+      allow delete: if isChairman() || isDeveloper();
     }
 
     // -----------------------------------------------------------
@@ -86,14 +103,14 @@ service cloud.firestore {
                data.status in ['pending', 'approved', 'rejected', 'shortlisted'];
       }
 
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isChairman() || isController());
-      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isChairman() || isController());
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isChairman() || isDeveloper() || isController());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isChairman() || isDeveloper() || isController());
 
       // Create: Candidate only
       allow create: if isCandidate() && incoming().userId == request.auth.uid && isValidApplication(incoming()) && incoming().appliedAt == request.time;
 
       // Update: Controller or Admin (status only)
-      allow update: if (isChairman() || isController()) && incoming().userId == existing().userId && incoming().jobId == existing().jobId && isValidApplication(incoming()) && incoming().updatedAt == request.time;
+      allow update: if (isChairman() || isDeveloper() || isController()) && incoming().userId == existing().userId && incoming().jobId == existing().jobId && isValidApplication(incoming()) && incoming().updatedAt == request.time;
     }
 
     // -----------------------------------------------------------
@@ -101,12 +118,12 @@ service cloud.firestore {
     // -----------------------------------------------------------
     match /notices/{noticeId} {
       allow read: if isSignedIn();
-      allow write: if isChairman() || isController();
+      allow write: if isChairman() || isDeveloper() || isController();
     }
 
     match /ads/{adId} {
       allow read: if isSignedIn();
-      allow write: if isChairman() || isController();
+      allow write: if isChairman() || isDeveloper() || isController();
     }
 
     // -----------------------------------------------------------
@@ -123,12 +140,12 @@ service cloud.firestore {
     // -----------------------------------------------------------
     match /courses/{courseId} {
       allow read: if isSignedIn();
-      allow write: if isChairman() || isController();
+      allow write: if isChairman() || isDeveloper() || isController();
     }
 
     match /events/{eventId} {
       allow read: if isSignedIn();
-      allow write: if isChairman() || isController();
+      allow write: if isChairman() || isDeveloper() || isController();
     }
 
     match /courseEnrollments/{enrollmentId} {
@@ -147,10 +164,10 @@ service cloud.firestore {
     // APPROVAL WORKFLOW (Controller -> Chairman)
     // -----------------------------------------------------------
     match /approvalRequests/{requestId} {
-      allow read: if isSignedIn() && (isChairman() || (isController() && resource.data.controllerId == request.auth.uid));
+      allow read: if isSignedIn() && (isChairman() || isDeveloper() || (isController() && resource.data.controllerId == request.auth.uid));
       allow create: if isController() && incoming().controllerId == request.auth.uid && incoming().status == 'pending';
-      allow update: if isChairman();
-      allow delete: if isChairman();
+      allow update: if isChairman() || isDeveloper();
+      allow delete: if isChairman() || isDeveloper();
     }
 
     match /approvalLogs/{logId} {

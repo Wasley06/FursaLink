@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { DEMO_PIN, DEMO_USERS } from '../lib/demoSession';
 import { readViteEnv, readViteEnvBool } from '../lib/env';
 import { useTheme } from '../contexts/ThemeContext';
+import { DISTRICTS, type District } from '../constants/locations';
 
 type InviteRole = 'controller' | 'chairman' | 'developer';
 
@@ -46,6 +47,7 @@ export default function InviteRegister() {
   const [formData, setFormData] = useState({
     fullName: '',
     phoneNumber: '',
+    district: '' as District | '',
     inviteCode: inviteCodeFromUrl,
     password: '',
     confirmPassword: '',
@@ -62,7 +64,7 @@ export default function InviteRegister() {
     if (inviteRole) setThemeRole(inviteRole);
   }, [inviteRole, setThemeRole]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -86,22 +88,28 @@ export default function InviteRegister() {
       setError('Invalid invite code for this link.');
       return;
     }
+    if (inviteRole === 'controller' && !formData.district) {
+      setError('Select your assigned district.');
+      return;
+    }
 
     setLoading(true);
     setError('');
 
     try {
-      const domain = readViteEnv('VITE_LOGIN_EMAIL_DOMAIN') || 'fursalink.znz';
-      const email = `${formData.phoneNumber}@${domain}`;
-      const userCredential = await createUserWithEmailAndPassword(auth, email, formData.password);
-      const user = userCredential.user;
-
-      const role = inviteRole === 'controller' ? 'controller' : inviteRole === 'chairman' ? 'chairman' : 'developer';
-
+      const domain = readViteEnv('VITE_LOGIN_EMAIL_DOMAIN') || 'fursalink.znz'; 
+      const email = `${formData.phoneNumber}@${domain}`; 
+      const userCredential = await createUserWithEmailAndPassword(auth, email, formData.password); 
+      const user = userCredential.user; 
+ 
+      const role = inviteRole === 'controller' ? 'controller' : inviteRole === 'chairman' ? 'chairman' : 'developer'; 
+ 
       await setDoc(doc(db, 'users', user.uid), { 
         fullName: formData.fullName, 
+        email,
         phoneNumber: formData.phoneNumber, 
         role, 
+        district: inviteRole === 'controller' ? formData.district : '',
         profileProgress: 100, 
         phoneVerified: inviteRole === 'developer' ? true : false,
         inviteRole: inviteRole, 
@@ -237,6 +245,28 @@ export default function InviteRegister() {
                 />
               </div>
             </div>
+
+            {inviteRole === 'controller' && (
+              <div>
+                <label className="block text-[10px] font-black text-navy/50 uppercase tracking-widest mb-2 ml-1">
+                  Assigned District
+                </label>
+                <select
+                  name="district"
+                  required
+                  className="glass-input text-navy font-bold appearance-none cursor-pointer"
+                  value={formData.district}
+                  onChange={handleChange}
+                >
+                  <option value="">Select</option>
+                  {DISTRICTS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-[10px] font-black text-navy/50 uppercase tracking-widest mb-2 ml-1">
