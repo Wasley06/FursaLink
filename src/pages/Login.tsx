@@ -18,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { readViteEnvBool, readViteEnv } from '../lib/env';
 import { useTheme } from '../contexts/ThemeContext';
 import { useI18n } from '../contexts/I18nContext';
+import { DISTRICTS, type District } from '../constants/locations';
 
 export default function Login() {
   const params = useParams();
@@ -31,6 +32,10 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [staySignedIn, setStaySignedIn] = useState(true);
+  const [controllerDistrict, setControllerDistrict] = useState<District | ''>(() => {
+    const raw = localStorage.getItem('fursalink:controllerDistrict') || '';
+    return (DISTRICTS as any).includes(raw) ? (raw as District) : '';
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -74,6 +79,14 @@ export default function Login() {
     setInfo('');
 
     try {
+      if (selectedRole === 'controller') {
+        if (!controllerDistrict) {
+          setError('Select your district to continue.');
+          return;
+        }
+        localStorage.setItem('fursalink:controllerDistrict', controllerDistrict);
+      }
+
       const email = selectedRole === 'developer' ? developerIdentifierToEmail(username) : `${phoneNumber}@${loginDomain}`;
       await setPersistence(auth, staySignedIn ? browserLocalPersistence : browserSessionPersistence);
       await signInWithEmailAndPassword(auth, email, password);
@@ -92,6 +105,20 @@ export default function Login() {
           await auth.signOut();
           setError(`Access denied: this account role is ${labelForRole(actualRole)} (not ${labelForRole(selectedRole)}).`);
           return;
+        }
+
+        if (selectedRole === 'controller') {
+          const actualDistrict = ((snap.data() as any)?.district || '').toString();
+          if (!actualDistrict) {
+            await auth.signOut();
+            setError('Controller account is missing an assigned district. Contact the chairman/developer to set it.');
+            return;
+          }
+          if (controllerDistrict && actualDistrict !== controllerDistrict) {
+            await auth.signOut();
+            setError(`Access denied: this controller is assigned to "${actualDistrict}" (not "${controllerDistrict}").`);
+            return;
+          }
         }
       }
 
@@ -263,6 +290,27 @@ export default function Login() {
                     onChange={(e) => setPhoneNumber(e.target.value)}
                   />
                 </div>
+              </div>
+            )}
+
+            {selectedRole === 'controller' && (
+              <div>
+                <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">
+                  District
+                </label>
+                <select
+                  required
+                  className="glass-input text-navy font-bold appearance-none cursor-pointer"
+                  value={controllerDistrict}
+                  onChange={(e) => setControllerDistrict(e.target.value as District)}
+                >
+                  <option value="">Select district</option>
+                  {DISTRICTS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
 

@@ -151,6 +151,36 @@ async function createController(auth: any, db: any, domain: string, input: { dis
   });
 
   await signOut(auth);
+  return uid;
+}
+
+async function createChairman(auth: any, db: any, domain: string, input: { phone: string; fullName: string; password: string }) {
+  const email = phoneToEmail(input.phone, domain);
+  try {
+    await createUserWithEmailAndPassword(auth, email, input.password);
+  } catch (e: any) {
+    if (e?.code === 'auth/email-already-in-use') {
+      await signInWithEmailAndPassword(auth, email, input.password);
+    } else {
+      throw e;
+    }
+  }
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('Chairman sign-in failed');
+
+  await setDoc(doc(db, 'users', uid), {
+    fullName: input.fullName,
+    phoneNumber: input.phone,
+    role: 'chairman',
+    phoneVerified: true,
+    profileProgress: 100,
+    isDemo: true,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  await signOut(auth);
+  return uid;
 }
 
 async function seedCandidates(db: any, total: number) {
@@ -190,6 +220,98 @@ async function seedCandidates(db: any, total: number) {
   }
 }
 
+async function seedJobsAndContent(db: any, controllerUids: Record<string, string>, chairmanUid: string) {
+  const jobsCol = collection(db, 'jobs');
+  const noticesCol = collection(db, 'notices');
+  const eventsCol = collection(db, 'events');
+  const coursesCol = collection(db, 'courses');
+
+  const jobTemplates = [
+    { title: 'ICT Officer', occupation: 'ICT Officer' },
+    { title: 'Nurse (General)', occupation: 'Nurse' },
+    { title: 'Teacher (Primary)', occupation: 'Teacher' },
+    { title: 'Accountant', occupation: 'Accountant' },
+    { title: 'Data Analyst', occupation: 'Data Analyst' },
+    { title: 'Civil Engineer', occupation: 'Civil Engineer' },
+  ];
+
+  const districts = Object.keys(DISTRICTS);
+  const batch = writeBatch(db);
+  let writes = 0;
+
+  const addWrite = (ref: any, data: any) => {
+    batch.set(ref, data);
+    writes += 1;
+  };
+
+  for (const district of districts) {
+    const controllerId = controllerUids[district] || chairmanUid;
+    for (let i = 0; i < 12; i++) {
+      const t = pick(jobTemplates);
+      const id = `demo_job_${district.replace(/\s+/g, '')}_${i + 1}`;
+      addWrite(doc(jobsCol, id), {
+        title: `${t.title} - ${district}`,
+        description: `Demo job posting for ${t.occupation} in ${district}.`,
+        qualifications: 'Diploma or higher. Relevant experience preferred.',
+        deadline: serverTimestamp(),
+        district,
+        occupation: t.occupation,
+        department: 'Public Service',
+        salary: 'As per government scale',
+        status: i % 4 === 0 ? 'unpublished' : 'published',
+        controllerId,
+        isDemo: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    const noticeId = `demo_notice_${district.replace(/\s+/g, '')}_1`;
+    addWrite(doc(noticesCol, noticeId), {
+      title: `Important Notice - ${district}`,
+      content: 'This is demo content for notices.',
+      type: 'notice',
+      audience: 'all',
+      controllerId,
+      isDemo: true,
+      createdAt: serverTimestamp(),
+    });
+
+    const eventId = `demo_event_${district.replace(/\s+/g, '')}_1`;
+    addWrite(doc(eventsCol, eventId), {
+      title: `Career Session - ${district}`,
+      description: 'Demo event for career guidance and application support.',
+      type: 'seminar',
+      status: 'published',
+      location: district,
+      startAt: serverTimestamp(),
+      endAt: serverTimestamp(),
+      capacity: 200,
+      createdBy: controllerId,
+      isDemo: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    const courseId = `demo_course_${district.replace(/\s+/g, '')}_1`;
+    addWrite(doc(coursesCol, courseId), {
+      title: `CV Writing Workshop - ${district}`,
+      description: 'Demo course to help candidates improve their CV and interview skills.',
+      category: 'career',
+      status: 'published',
+      capacity: 300,
+      createdBy: controllerId,
+      isDemo: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  // Commit in chunks to avoid limits
+  await batch.commit();
+  console.log(`Seeded demo jobs/notices/events/courses: ${writes} writes`);
+}
+
 async function main() {
   const domain = process.env.VITE_LOGIN_EMAIL_DOMAIN || 'fursalink.znz';
   const controllerPassword = requiredEnv('FURSALINK_DEMO_CONTROLLER_PASSWORD');
@@ -213,12 +335,19 @@ async function main() {
 
   console.log('Creating district controller demo accounts...');
   // These phone numbers become the login identifier (phone@domain).
-  await createController(auth, db, domain, { district: 'Mjini', fullName: 'Demo Controller - Mjini', phone: '0777000101', password: controllerPassword });
-  await createController(auth, db, domain, { district: 'Magharibi A', fullName: 'Demo Controller - Magharibi A', phone: '0777000102', password: controllerPassword });
-  await createController(auth, db, domain, { district: 'Magharibi B', fullName: 'Demo Controller - Magharibi B', phone: '0777000103', password: controllerPassword });
+  const controllerUids: Record<string, string> = {};
+  controllerUids['Mjini'] = await createController(auth, db, domain, { district: 'Mjini', fullName: 'Demo Controller - Mjini', phone: '0777000101', password: controllerPassword });
+  controllerUids['Magharibi A'] = await createController(auth, db, domain, { district: 'Magharibi A', fullName: 'Demo Controller - Magharibi A', phone: '0777000102', password: controllerPassword });
+  controllerUids['Magharibi B'] = await createController(auth, db, domain, { district: 'Magharibi B', fullName: 'Demo Controller - Magharibi B', phone: '0777000103', password: controllerPassword });
+
+  console.log('Creating chairman demo account...');
+  const chairmanUid = await createChairman(auth, db, domain, { fullName: 'Demo Chairman', phone: '0777000200', password: controllerPassword });
 
   console.log('Signing back in as developer for seeding...');
   await signInWithEmailAndPassword(auth, usernameToEmail(requiredEnv('FURSALINK_DEV_USERNAME'), domain), requiredEnv('FURSALINK_DEV_PASSWORD'));
+
+  console.log('Seeding demo jobs + content...');
+  await seedJobsAndContent(db, controllerUids, chairmanUid);
 
   const target = Number(process.env.FURSALINK_DEMO_CANDIDATE_COUNT || '1370');
   console.log(`Seeding ${target} demo candidates (Mjini, Magharibi A, Magharibi B)...`);
