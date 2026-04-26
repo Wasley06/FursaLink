@@ -88,6 +88,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [notifOpen, setNotifOpen] = useState(false);
 
   const roleLabel = profile?.role;
+  const profileSettingsPath =
+    profile?.role === 'candidate'
+      ? '/candidate/settings'
+      : profile?.role === 'controller'
+        ? '/controller/settings'
+        : profile?.role === 'chairman'
+          ? '/chairman/settings'
+          : profile?.role === 'developer'
+            ? '/developer/settings'
+            : '/dashboard';
 
   const getItems = () => {
     if (!profile) return [];
@@ -220,6 +230,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {unreadCount > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full" />}
             </button>
 
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="p-2.5 rounded-xl hover:bg-sky transition-colors text-muted hover:text-primary"
+              aria-label={t('common.logout')}
+              title={t('common.logout')}
+            >
+              <LogOut className="w-6 h-6" />
+            </button>
+
             {notifOpen && (
               <div
                 data-notif-root="1"
@@ -279,13 +299,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="text-sm font-bold text-navy leading-tight">{profile?.fullName}</div>
                 <div className="text-[10px] font-bold text-primary uppercase tracking-widest">{roleLabel ? t(`role.${roleLabel}`) : ''}</div>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-sky border-2 border-border flex items-center justify-center overflow-hidden">
+              <button
+                type="button"
+                onClick={() => navigate(profileSettingsPath)}
+                className="w-12 h-12 rounded-2xl bg-sky border-2 border-border flex items-center justify-center overflow-hidden"
+                aria-label="Open profile settings"
+                title="Profile settings"
+              >
                 {profile?.photoUrl ? (
                   <img src={profile.photoUrl} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   <User className="w-6 h-6 text-primary" />
                 )}
-              </div>
+              </button>
             </div>
           </div>
         </header>
@@ -338,6 +364,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </Link>
                 ))}
               </nav>
+              <div className="p-6 border-t border-white/10 space-y-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    navigate(profileSettingsPath);
+                  }}
+                  className="flex items-center gap-4 px-4 py-3.5 rounded-xl w-full text-white/70 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  <User className="w-5 h-5" />
+                  <span className="font-medium">Profile Settings</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setMobileMenuOpen(false);
+                    await handleLogout();
+                  }}
+                  className="flex items-center gap-4 px-4 py-3.5 rounded-xl w-full text-white/70 hover:text-white hover:bg-danger/20 transition-all"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span className="font-medium">{t('common.logout')}</span>
+                </button>
+              </div>
             </motion.aside>
           </>
         )}

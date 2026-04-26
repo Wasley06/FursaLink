@@ -7,10 +7,12 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
     function getAuthUser() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
-    function isChairman() { return isSignedIn() && getAuthUser().role in ['chairman', 'admin']; }
-    function isController() { return isSignedIn() && getAuthUser().role == 'controller'; }
-    function isCandidate() { return isSignedIn() && getAuthUser().role == 'candidate'; }
-    function isDeveloper() { return isSignedIn() && getAuthUser().role == 'developer'; }
+    // NOTE: Firestore Rules have no toLowerCase()/trim(). We allow a few legacy/casing variants
+    // so older user documents don't get locked out.
+    function isChairman() { return isSignedIn() && getAuthUser().role in ['chairman', 'Chairman', 'admin', 'Admin', 'ADMIN']; }
+    function isController() { return isSignedIn() && getAuthUser().role in ['controller', 'Controller']; }
+    function isCandidate() { return isSignedIn() && getAuthUser().role in ['candidate', 'Candidate']; }
+    function isDeveloper() { return isSignedIn() && getAuthUser().role in ['developer', 'Developer', 'dev', 'Dev', 'DEV']; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function incoming() { return request.resource.data; }
