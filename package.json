@@ -1,7 +1,7 @@
 {
   "name": "react-example",
   "private": true,
-  "version": "0.0.10",
+  "version": "0.0.11",
   "type": "module",
   "description": "FursaLink Zanzibar — Government employment management portal (web + desktop installers).",
   "scripts": {
@@ -34,6 +34,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
+    "electron-updater": "^6.8.3",
     "express": "^4.21.2",
     "firebase": "^12.12.1",
     "firebase-admin": "^13.8.0",
@@ -54,7 +55,6 @@
     "concurrently": "^9.2.1",
     "electron": "^41.3.0",
     "electron-builder": "^26.8.1",
-    "electron-updater": "^6.8.3",
     "firebase-tools": "^15.15.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
