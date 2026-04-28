@@ -11,7 +11,7 @@ function Get-PackageVersion {
 }
 
 if (-not $Version) { $Version = Get-PackageVersion }
-if (-not $Repo) { $Repo = "Wasley-Dev/fursalink-zanzibar" }
+if (-not $Repo) { $Repo = "Wasley06/FursaLink" }
 
 $tag = "v$Version"
 

@@ -23,7 +23,7 @@
   "author": "AELYN TECHNOLOGIES",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Wasley-Dev/fursalink-zanzibar.git"
+    "url": "https://github.com/Wasley06/FursaLink.git"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
