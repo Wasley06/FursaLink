@@ -47,7 +47,8 @@ service cloud.firestore {
       // - Self-registration: doc id must equal uid
       // - Seed/demo: chairman/developer can create demo users only (isDemo=true)
       allow create: if isSignedIn() && isValidUser(incoming()) && (
-        (isOwner(userId) && incoming().createdAt == request.time) ||
+        // Allow serverTimestamp() placeholders by only enforcing updatedAt (createdAt optional on first write).
+        (isOwner(userId) && incoming().updatedAt == request.time) ||
         ((isChairman() || isDeveloper()) && incoming().isDemo == true)
       );
 
