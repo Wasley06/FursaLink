@@ -2,10 +2,9 @@ name: Desktop Release
 
 on:
   push:
-    branches:
-      - master
     tags:
       - "v*"
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -30,26 +29,17 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      - name: Build web assets
+        run: npm run build
+
       - name: Build installers (Windows)
         if: matrix.os == 'windows-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --win --x64 --publish ${{ startsWith(github.ref, 'refs/tags/v') && 'always' || 'never' }}
+        run: npx electron-builder --win --x64 --publish always
 
       - name: Build installers (macOS)
         if: matrix.os == 'macos-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --mac --x64 --arm64 --publish ${{ startsWith(github.ref, 'refs/tags/v') && 'always' || 'never' }}
-
-      - name: Upload installers (artifacts)
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: installers-${{ matrix.os }}
-          path: |
-            release/*.exe
-            release/*.dmg
-            release/*.zip
-            release/*.blockmap
-            release/latest*.yml
+        run: npx electron-builder --mac --x64 --arm64 --publish always

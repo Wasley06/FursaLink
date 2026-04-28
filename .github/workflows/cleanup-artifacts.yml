@@ -1,19 +1,18 @@
-name: Release Desktop Installers
+name: Cleanup Actions Artifacts
 
 on:
-  push:
-    tags:
-      - "v*"
+  schedule:
+    - cron: "0 2 * * *"
   workflow_dispatch: {}
 
 permissions:
-  contents: write
+  actions: write
 
 jobs:
-  cleanup-artifacts:
+  cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete old Actions artifacts (older than 1 day)
+      - name: Delete old artifacts (older than 1 day)
         uses: actions/github-script@v7
         with:
           script: |
@@ -49,32 +48,3 @@ jobs:
             }
             core.info(`Deleted ${deleted} old artifacts.`);
 
-  build-windows:
-    needs: cleanup-artifacts
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npx electron-builder --win --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build-macos:
-    needs: cleanup-artifacts
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npx electron-builder --mac --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
