@@ -1,7 +1,7 @@
 {
   "name": "react-example",
   "private": true,
-  "version": "0.0.8",
+  "version": "0.0.9",
   "type": "module",
   "description": "FursaLink Zanzibar — Government employment management portal (web + desktop installers).",
   "scripts": {
@@ -90,11 +90,11 @@
         "zip"
       ]
     },
+    "extraMetadata": {
+      "author": "AELYN TECHNOLOGIES"
+    },
     "win": {
       "icon": "public/brand/app.ico",
-      "publisherName": [
-        "AELYN TECHNOLOGIES"
-      ],
       "signAndEditExecutable": false,
       "target": [
         "nsis"
