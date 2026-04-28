@@ -20,7 +20,7 @@
     "desktop:publish": "npm run desktop:dist && powershell -ExecutionPolicy Bypass -File scripts/publish-github-release.ps1"
   },
   "main": "electron/main.cjs",
-  "author": "FursaLink Zanzibar",
+  "author": "AELYN TECHNOLOGIES",
   "repository": {
     "type": "git",
     "url": "https://github.com/Wasley-Dev/fursalink-zanzibar.git"
@@ -65,6 +65,7 @@
   "build": {
     "appId": "com.fursalink.zanzibar",
     "productName": "FursaLink Zanzibar",
+    "copyright": "Copyright © 2026 AELYN TECHNOLOGIES",
     "directories": {
       "buildResources": "public/brand",
       "output": "release"
@@ -91,6 +92,9 @@
     },
     "win": {
       "icon": "public/brand/app.ico",
+      "publisherName": [
+        "AELYN TECHNOLOGIES"
+      ],
       "signAndEditExecutable": false,
       "target": [
         "nsis"

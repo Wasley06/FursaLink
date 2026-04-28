@@ -7,7 +7,7 @@ import {
   setPersistence,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { AlertCircle, ArrowRight, Loader2, Lock, Phone, ShieldCheck, User } from 'lucide-react';
@@ -96,11 +96,28 @@ export default function Login() {
       if (uid) {
         const snap = await getDoc(doc(db, 'users', uid));
         if (!snap.exists()) {
-          await auth.signOut();
-          setError(`Account profile not found. Create Firestore document users/${uid} with role=${selectedRole}.`);
-          return;
+          // Self-heal for developer: create the missing profile document.
+          // This avoids lockouts when Auth user exists but the Firestore profile was never created.
+          if (selectedRole === 'developer') {
+            const devName = (username || '').trim() || 'Wasley DEV';
+            await setDoc(doc(db, 'users', uid), {
+              fullName: devName,
+              phoneNumber: '0700000000',
+              role: 'developer',
+              phoneVerified: true,
+              profileProgress: 100,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              seededBy: 'login:self-heal',
+            } as any);
+          } else {
+            await auth.signOut();
+            setError(`Account profile not found. Create Firestore document users/${uid} with role=${selectedRole}.`);
+            return;
+          }
         }
-        const actualRole = normalizeStoredRole((snap.data() as any)?.role);
+        const snap2 = snap.exists() ? snap : await getDoc(doc(db, 'users', uid));
+        const actualRole = normalizeStoredRole((snap2.data() as any)?.role);
         if (actualRole !== selectedRole) {
           await auth.signOut();
           setError(`Access denied: this account role is ${labelForRole(actualRole)} (not ${labelForRole(selectedRole)}).`);
@@ -108,7 +125,7 @@ export default function Login() {
         }
 
         if (selectedRole === 'controller') {
-          const actualDistrict = ((snap.data() as any)?.district || '').toString();
+          const actualDistrict = ((snap2.data() as any)?.district || '').toString();
           if (!actualDistrict) {
             await auth.signOut();
             setError('Controller account is missing an assigned district. Contact the chairman/developer to set it.');
