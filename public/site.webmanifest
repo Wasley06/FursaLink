@@ -2,6 +2,9 @@
   "name": "FursaLink Zanzibar",
   "short_name": "FursaLink",
   "description": "Official government employment management system for Zanzibar.",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -16,5 +19,6 @@
   ],
   "theme_color": "#0B4F8A",
   "background_color": "#EAF4FB",
-  "display": "standalone"
+  "display": "standalone",
+  "orientation": "portrait"
 }
