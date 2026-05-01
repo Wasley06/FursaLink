@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { addDoc, collection, doc, getDoc, getDocs, limit, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, limit, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { FileCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../lib/firebase';
@@ -14,34 +14,40 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const run = async () => {
-      if (!profile) return;
-      try {
-        const snap = await getDocs(
-          query(collection(db, 'applications'), where('status', '==', 'pending'), orderBy('appliedAt', 'desc'), limit(50)),
-        );
-        const apps = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Application));
-        const jobIds = Array.from(new Set(apps.map((a) => a.jobId)));
-        const userIds = Array.from(new Set(apps.map((a) => a.userId)));
+    if (!profile?.district) return;
+    setLoading(true);
+    const qy = query(
+      collection(db, 'applications'),
+      where('status', '==', 'pending'),
+      where('jobDistrict', '==', profile.district),
+      orderBy('appliedAt', 'desc'),
+      limit(80),
+    );
 
-        const jobDocs = await Promise.all(jobIds.map((id) => getDoc(doc(db, 'jobs', id))));
-        const userDocs = await Promise.all(userIds.map((id) => getDoc(doc(db, 'users', id))));
+    const unsub = onSnapshot(
+      qy,
+      async (snap) => {
+        const apps = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Application));
+        const jobIds = Array.from(new Set(apps.map((a: any) => a.jobId).filter(Boolean)));
+        const userIds = Array.from(new Set(apps.map((a: any) => a.userId).filter(Boolean)));
+
+        const [jobDocs, userDocs] = await Promise.all([
+          Promise.all(jobIds.map((id) => getDoc(doc(db, 'jobs', id)))),
+          Promise.all(userIds.map((id) => getDoc(doc(db, 'users', id)))),
+        ]);
 
         const jobsById: Record<string, Job> = {};
         jobDocs.forEach((s) => s.exists() && (jobsById[s.id] = { id: s.id, ...s.data() } as Job));
         const usersById: Record<string, UserProfile> = {};
         userDocs.forEach((s) => s.exists() && (usersById[s.id] = { id: s.id, ...s.data() } as UserProfile));
 
-        const filtered = apps
-          .map((app) => ({ app, job: jobsById[app.jobId] || null, user: usersById[app.userId] || null }))
-          .filter((r) => !r.job?.district || r.job?.district === profile.district);
-
-        setRows(filtered);
-      } finally {
+        setRows(apps.map((app) => ({ app, job: jobsById[(app as any).jobId] || null, user: usersById[(app as any).userId] || null })));
         setLoading(false);
-      }
-    };
-    run();
+      },
+      () => setLoading(false),
+    );
+
+    return () => unsub();
   }, [profile]);
 
   const setStatus = async (row: Row, status: Application['status']) => {

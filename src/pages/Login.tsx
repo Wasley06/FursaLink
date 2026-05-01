@@ -46,10 +46,20 @@ export default function Login() {
   }, [location.search, params.role]);
 
   useEffect(() => {
+    const qp = new URLSearchParams(location.search);
+    const fromQuery = qp.get('phone') || '';
+    const fromStorage = localStorage.getItem('fursalink:pendingPhone') || '';
+    if (selectedRole !== 'developer' && !phoneNumber.trim()) {
+      const initial = (fromQuery || fromStorage || '').trim();
+      if (initial) setPhoneNumber(initial);
+    }
+  }, [location.search, phoneNumber, selectedRole]);
+
+  useEffect(() => {
     setThemeRole(selectedRole);
   }, [selectedRole, setThemeRole]);
 
-  const setRole = (role: 'candidate' | 'controller' | 'chairman' | 'developer') => {
+  const setRole = (role: 'candidate' | 'controller' | 'chairman' | 'administrator' | 'developer') => {
     const qp = new URLSearchParams(location.search);
     qp.set('role', role);
     setThemeRole(role);
@@ -79,6 +89,10 @@ export default function Login() {
     setInfo('');
 
     try {
+      if (selectedRole !== 'developer' && phoneNumber.trim().includes('@')) {
+        setError('Enter your phone number (not an email address).');
+        return;
+      }
       if (selectedRole === 'controller') {
         if (!controllerDistrict) {
           setError('Select your district to continue.');
@@ -116,11 +130,46 @@ export default function Login() {
             return;
           }
         }
-        const snap2 = snap.exists() ? snap : await getDoc(doc(db, 'users', uid));
-        const actualRole = normalizeStoredRole((snap2.data() as any)?.role);
+        let snap2 = snap.exists() ? snap : await getDoc(doc(db, 'users', uid));
+        let actualRole = normalizeStoredRole((snap2.data() as any)?.role);
+
+        // Developer bootstrap: allow a pre-approved dev account to self-promote via a server-side (Firebase Admin) endpoint.
+        // This fixes the common "Auth user exists but users/{uid}.role is still candidate" mismatch.
+        let bootstrapError: string | null = null;
+        if (selectedRole === 'developer' && actualRole !== 'developer') {
+          try {
+            // First try a direct self-promotion write (allowed only for pre-approved dev email via Firestore rules).
+            await setDoc(
+              doc(db, 'users', uid),
+              {
+                role: 'developer',
+                updatedAt: serverTimestamp(),
+                seededBy: 'login:bootstrap-role',
+              } as any,
+              { merge: true },
+            );
+            snap2 = await getDoc(doc(db, 'users', uid));
+            actualRole = normalizeStoredRole((snap2.data() as any)?.role);
+            if (actualRole === 'developer') {
+              bootstrapError = null;
+              // proceed
+            } else {
+              throw new Error('direct_bootstrap_noop');
+            }
+          } catch (e: any) {
+            bootstrapError = `direct_bootstrap_failed:${e?.code || e?.message || 'unknown'}`;
+          }
+
+          // Note: server-side bootstrap is intentionally disabled; Firestore rules handle the allowlisted self-promotion.
+        }
+
         if (actualRole !== selectedRole) {
           await auth.signOut();
-          setError(`Access denied: this account role is ${labelForRole(actualRole)} (not ${labelForRole(selectedRole)}).`);
+          const suffix =
+            selectedRole === 'developer' && bootstrapError
+              ? ` (dev bootstrap failed: ${bootstrapError}; email=${email})`
+              : '';
+          setError(`Access denied: this account role is ${labelForRole(actualRole)} (not ${labelForRole(selectedRole)}).${suffix}`);
           return;
         }
 
@@ -207,14 +256,14 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-sky p-6 overflow-hidden relative font-sans">
+    <div className="min-h-[100svh] flex items-start sm:items-center justify-center bg-sky p-4 sm:p-6 overflow-y-auto relative font-sans">
       <div className="absolute inset-0 bg-glass-radial pointer-events-none" />
       <motion.div
         initial={{ opacity: 0, scale: 0.98, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="max-w-md w-full glass-card overflow-hidden"
+        className="max-w-lg w-full glass-card overflow-hidden"
       >
-        <div className="p-10 text-center relative">
+        <div className="p-8 sm:p-10 text-center relative">
           <div className="mx-auto w-16 h-16 rounded-2xl bg-white/40 border border-white/50 backdrop-blur-md flex items-center justify-center overflow-hidden shadow-sm mb-5">
             <img src="/brand/logo.png" className="w-14 h-14 object-contain" alt="FursaLink Zanzibar logo" />
           </div>
@@ -226,12 +275,13 @@ export default function Login() {
           <p className="text-muted text-xs font-bold tracking-widest uppercase mt-2">FursaLink Zanzibar</p>
         </div>
 
-        <div className="px-10 pb-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 rounded-2xl bg-white/30 border border-white/50 backdrop-blur-md p-2">
+        <div className="px-8 sm:px-10 pb-4">
+          <div className="flex flex-wrap gap-2 rounded-2xl bg-white/30 border border-white/50 backdrop-blur-md p-2">
             {[
               { key: 'candidate', label: t('role.candidate') },
               { key: 'controller', label: t('role.controller') },
               { key: 'chairman', label: t('role.chairman') },
+              { key: 'administrator', label: t('role.administrator') },
               { key: 'developer', label: t('role.developer') },
             ].map((r) => {
               const active = selectedRole === r.key;
@@ -241,7 +291,7 @@ export default function Login() {
                   type="button"
                   onClick={() => setRole(r.key as any)}
                   className={[
-                    'px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all',
+                    'flex-1 min-w-[112px] sm:min-w-[132px] px-3 py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.18em] transition-all truncate',
                     active ? 'bg-white text-navy shadow-sm' : 'text-navy/60 hover:text-navy hover:bg-white/40',
                   ].join(' ')}
                 >
@@ -252,14 +302,14 @@ export default function Login() {
           </div>
           <p className="mt-3 text-xs text-muted font-medium">
             {selectedRole === 'candidate'
-              ? 'New here? Create a candidate account in seconds.'
+              ? t('login.noticeCandidate')
               : selectedRole === 'developer'
-                ? 'Developer accounts are restricted and audited.'
-                : 'Controller and Chairman accounts are invitation-only.'}
+                ? t('login.noticeDeveloper')
+                : t('login.noticeInvited')}
           </p>
         </div>
 
-        <div className="p-10 pt-6">
+        <div className="p-8 sm:p-10 pt-6">
           {error && (
             <div className="mb-8 p-4 bg-danger/10 border border-danger/20 text-danger rounded-xl flex items-center gap-3">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -386,17 +436,38 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-4">
-            {readViteEnvBool('VITE_ENABLE_DEMO_AUTH', true) && selectedRole !== 'developer' && (
-              <button
-                type="button"
-                onClick={handleDemoLogin}
-                className="btn-outline w-full justify-center py-3 text-xs font-black uppercase tracking-widest border-white/50 bg-white/30"
-              >
-                Demo Login (PIN {DEMO_PIN})
-              </button>
-            )}
-          </div>
+          {readViteEnvBool('VITE_ENABLE_DEMO_AUTH', true) ? (
+            <div className="mt-4 premium-card bg-white/20 border border-white/50">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-xs font-black uppercase tracking-widest text-navy">Demo Accounts</div>
+                <div className="text-[11px] font-bold text-muted">PIN {DEMO_PIN}</div>
+              </div>
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {(['candidate', 'controller', 'chairman', 'administrator'] as const).map((r) => {
+                  const demo = (DEMO_USERS as any)[r];
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => {
+                        setThemeRole(r as any);
+                        signInDemo({ uid: `demo_${r}`, role: r as any, fullName: demo.fullName, phoneNumber: demo.phoneNumber });
+                        navigate('/dashboard');
+                      }}
+                      className="rounded-2xl border border-white/50 bg-white/30 backdrop-blur-md px-5 py-4 text-left hover:bg-white/40 transition-colors"
+                    >
+                      <div className="text-xs font-black uppercase tracking-widest text-primary">{t(`role.${r}` as any)}</div>
+                      <div className="text-sm font-extrabold text-navy mt-2">{demo.fullName}</div>
+                      <div className="text-[11px] text-muted font-medium mt-1">{demo.phoneNumber}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-4 text-xs text-muted font-medium">
+                Demo sessions are local-only and do not require Firebase Authentication.
+              </div>
+            </div>
+          ) : null}
 
           {selectedRole === 'candidate' ? (
             <p className="mt-10 text-center text-[11px] font-bold uppercase tracking-widest text-muted">

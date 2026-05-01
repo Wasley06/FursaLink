@@ -11,3 +11,4 @@ release/
 .vercel
 .npm-cache/
 .vscode/
+.xdg-config/

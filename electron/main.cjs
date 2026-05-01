@@ -20,6 +20,8 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // Provide the live Vercel URL to the renderer (useful when offline fallback loads file://).
+      additionalArguments: [`--fursalink-app-url=${PROD_URL}`],
     },
   });
 

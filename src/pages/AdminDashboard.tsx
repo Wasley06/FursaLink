@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
-import { collection, query, getDocs, limit, orderBy, where } from 'firebase/firestore';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Job, Application, UserProfile } from '../types';
@@ -41,6 +41,7 @@ import {
 import { cn } from '../lib/utils';
 import { seedDemoCandidates } from '../lib/seeder';
 import ApprovalsPage from './chairman/ApprovalsPage';
+import ApplicationApprovalsPage from './chairman/ApplicationApprovalsPage';
 import ChairmanUsersPage from './chairman/UsersPage';
 import SecurityPage from './chairman/SecurityPage';
 import AnalyticsPage from './chairman/AnalyticsPage';
@@ -53,6 +54,7 @@ import ChairmanEditJobPage from './chairman/EditJobPage';
 const COLORS = ['#0B4F8A', '#1F8A4D', '#D9A441', '#60A5FA', '#14B8A6', '#F59E0B'];
 
 function ExecutiveStats() {
+  const navigate = useNavigate();
   const [seeding, setSeeding] = useState(false);
   const [data, setData] = useState({
     totalApplicants: 0,
@@ -64,28 +66,45 @@ function ExecutiveStats() {
   const [approvalQueue, setApprovalQueue] = useState<any[]>([]);
 
   useEffect(() => {
-    const run = async () => {
-      const [uSnap, jSnap, aSnap, apprSnap] = await Promise.all([
-        getDocs(query(collection(db, 'users'), limit(2000))),
-        getDocs(query(collection(db, 'jobs'), limit(2000))),
-        getDocs(query(collection(db, 'applications'), limit(4000))),
-        getDocs(query(collection(db, 'approvalRequests'), orderBy('createdAt', 'desc'), limit(10))),
-      ]);
-      const users = uSnap.docs.map((d) => d.data() as any);
-      const apps = aSnap.docs.map((d) => d.data() as any);
-      const jobs = jSnap.docs.map((d) => d.data() as any);
+    const unsubs: Array<() => void> = [];
 
-      setData({
-        totalApplicants: users.filter((u) => u.role === 'candidate').length,
-        accepted: apps.filter((a) => a.status === 'approved').length,
-        rejected: apps.filter((a) => a.status === 'rejected').length,
-        pending: apps.filter((a) => a.status === 'pending' || a.status === 'shortlisted').length,
-        jobs: jobs.filter((j) => j.status === 'published').length,
-      });
+    unsubs.push(
+      onSnapshot(query(collection(db, 'users'), where('role', '==', 'candidate'), limit(4000)), (snap) =>
+        setData((p) => ({ ...p, totalApplicants: snap.size })),
+      ),
+    );
 
-      setApprovalQueue(apprSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    };
-    run();
+    unsubs.push(
+      onSnapshot(query(collection(db, 'jobs'), where('status', '==', 'published'), limit(4000)), (snap) =>
+        setData((p) => ({ ...p, jobs: snap.size })),
+      ),
+    );
+
+    unsubs.push(
+      onSnapshot(query(collection(db, 'applications'), where('status', '==', 'approved'), limit(5000)), (snap) =>
+        setData((p) => ({ ...p, accepted: snap.size })),
+      ),
+    );
+
+    unsubs.push(
+      onSnapshot(query(collection(db, 'applications'), where('status', '==', 'rejected'), limit(5000)), (snap) =>
+        setData((p) => ({ ...p, rejected: snap.size })),
+      ),
+    );
+
+    unsubs.push(
+      onSnapshot(query(collection(db, 'applications'), where('status', 'in', ['pending', 'shortlisted']), limit(5000)), (snap) =>
+        setData((p) => ({ ...p, pending: snap.size })),
+      ),
+    );
+
+    unsubs.push(
+      onSnapshot(query(collection(db, 'approvalRequests'), orderBy('createdAt', 'desc'), limit(10)), (snap) =>
+        setApprovalQueue(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      ),
+    );
+
+    return () => unsubs.forEach((u) => u());
   }, []);
 
   const chartData = [
@@ -161,8 +180,10 @@ function ExecutiveStats() {
           { label: 'Rejected', val: data.rejected.toLocaleString(), trend: 'Requires Review', up: false, icon: AlertCircleLucide, color: 'text-danger' },
           { label: 'Pending Review', val: data.pending.toLocaleString(), trend: 'Requires Action', up: true, icon: Clock, color: 'text-warning' },
           { label: 'Open Job Posts', val: data.jobs, trend: '9 expiring soon', up: true, icon: Briefcase, color: 'text-gold' }
-        ].map((kpi, i) => (
-          <div key={i} className="premium-card">
+        ].map((kpi, i) => {
+          const to = i === 0 ? '/chairman/candidates' : i === 4 ? '/chairman/jobs' : '/chairman/approvals';
+          return (
+          <Link key={i} to={to} className="premium-card hover:bg-sky/20 transition-colors block">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold text-muted uppercase tracking-wider">{kpi.label}</span>
               <div className={`p-1.5 rounded-lg bg-sky/50 ${kpi.color}`}>
@@ -173,8 +194,9 @@ function ExecutiveStats() {
             <div className={`text-[10px] font-bold mt-2 ${kpi.up ? 'text-emerald' : 'text-danger'}`}>
               {kpi.trend}
             </div>
-          </div>
-        ))}
+          </Link>
+          );
+        })}
       </div>
 
       <div className="bento-grid grid-cols-1 lg:grid-cols-4 lg:grid-rows-[400px_auto]">
@@ -203,7 +225,16 @@ function ExecutiveStats() {
         </div>
 
         {/* District Activity - Map Placeholder or Visual */}
-        <div className="lg:col-span-1 premium-card">
+        <div
+          className="lg:col-span-1 premium-card cursor-pointer hover:bg-sky/20 transition-colors"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate('/chairman/analytics')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') navigate('/chairman/analytics');
+          }}
+          title="Open analytics"
+        >
           <h3 className="text-base font-bold text-navy mb-6 text-center">District Activity</h3>
           <div className="flex-1 flex flex-col items-center justify-center relative py-10">
             <div className="w-[120px] h-[180px] bg-sky rounded-[100px_80px_120px_60px] border-2 border-primary/20 relative shadow-inner">
@@ -217,7 +248,16 @@ function ExecutiveStats() {
         </div>
 
         {/* Occupation Distribution / Candidate Mix */}
-        <div className="lg:col-span-1 premium-card">
+        <div
+          className="lg:col-span-1 premium-card cursor-pointer hover:bg-sky/20 transition-colors"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate('/chairman/analytics')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') navigate('/chairman/analytics');
+          }}
+          title="Open analytics"
+        >
           <h3 className="text-base font-bold text-navy mb-6">Candidate Mix</h3>
           <div className="space-y-5">
             {occupationData.slice(0, 3).map((d, i) => (
@@ -238,7 +278,7 @@ function ExecutiveStats() {
             ))}
           </div>
           <div className="mt-auto pt-4 flex items-center justify-center">
-             <button className="text-[11px] font-bold text-primary hover:underline">Download Demographics</button>
+             <span className="text-[11px] font-bold text-primary hover:underline">Open analytics</span>
           </div>
         </div>
 
@@ -265,7 +305,12 @@ function ExecutiveStats() {
                   </tr>
                 ) : (
                   approvalQueue.map((row) => (
-                    <tr key={row.id} className="hover:bg-sky/20 transition-colors">
+                    <tr
+                      key={row.id}
+                      className="hover:bg-sky/20 transition-colors cursor-pointer"
+                      onClick={() => navigate('/chairman/approvals')}
+                      title="Open approvals"
+                    >
                       <td className="px-6 py-4 text-sm font-bold text-navy">{row.userId}</td>
                       <td className="px-6 py-4 text-sm text-muted">{row.occupation || '-'}</td>
                       <td className="px-6 py-4 text-sm text-muted">{row.district || '-'}</td>
@@ -292,6 +337,7 @@ export default function AdminDashboard() {
       <Routes>
         <Route index element={<ExecutiveStats />} />
         <Route path="approvals" element={<ApprovalsPage />} />
+        <Route path="application-approvals" element={<ApplicationApprovalsPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="users" element={<ChairmanUsersPage />} />
         <Route path="candidates" element={<ChairmanCandidatesPage />} />

@@ -1,5 +1,6 @@
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 
 function requireEnv(name: string): string {
   const v = process.env[name];
@@ -7,16 +8,24 @@ function requireEnv(name: string): string {
   return v;
 }
 
+function ensureInitialized() {
+  if (getApps().length) return;
+  const projectId = requireEnv('FIREBASE_ADMIN_PROJECT_ID');
+  const clientEmail = requireEnv('FIREBASE_ADMIN_CLIENT_EMAIL');
+  const privateKey = requireEnv('FIREBASE_ADMIN_PRIVATE_KEY').replace(/\\n/g, '\n');
+  initializeApp({
+    credential: cert({ projectId, clientEmail, privateKey }),
+  });
+}
+
 export function getFirebaseAdminAuth() {
-  if (!getApps().length) {
-    const projectId = requireEnv('FIREBASE_ADMIN_PROJECT_ID');
-    const clientEmail = requireEnv('FIREBASE_ADMIN_CLIENT_EMAIL');
-    const privateKey = requireEnv('FIREBASE_ADMIN_PRIVATE_KEY').replace(/\\n/g, '\n');
-    initializeApp({
-      credential: cert({ projectId, clientEmail, privateKey }),
-    });
-  }
+  ensureInitialized();
   return getAuth();
+}
+
+export function getFirebaseAdminDb() {
+  ensureInitialized();
+  return getFirestore();
 }
 
 export async function requireFirebaseUser(req: { headers?: Record<string, any> }) {

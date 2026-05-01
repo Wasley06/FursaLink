@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, limit, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { motion } from 'motion/react';
 import { DISTRICTS, WARDS, District } from '../constants/locations';
@@ -13,11 +13,13 @@ import { readViteEnv, readViteEnvBool } from '../lib/env';
 import { useTheme } from '../contexts/ThemeContext';
 import { buildCandidateIndex } from '../lib/candidateIndex';
 import { uploadUserFile } from '../lib/uploads';
+import { sendNotification } from '../lib/notify';
 
 export default function Register() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [existingAccount, setExistingAccount] = useState(false);
   const navigate = useNavigate(); 
   const { signInDemo } = useAuth(); 
   const { setThemeRole } = useTheme();
@@ -51,8 +53,13 @@ export default function Register() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setExistingAccount(false);
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+    if (!formData.contactEmail || !formData.contactEmail.includes('@')) {
+      setError('Email address is required for verification.');
       return;
     }
 
@@ -60,6 +67,8 @@ export default function Register() {
     setError('');
 
     try {
+      localStorage.setItem('fursalink:pendingPhone', formData.phoneNumber);
+      localStorage.setItem('fursalink:pendingEmail', formData.contactEmail);
       const domain = readViteEnv('VITE_LOGIN_EMAIL_DOMAIN') || 'fursalink.znz';
       const email = `${formData.phoneNumber}@${domain}`;  
       const userCredential = await createUserWithEmailAndPassword(auth, email, formData.password);  
@@ -83,6 +92,7 @@ export default function Register() {
         photoRef: null,
         profileProgress: 50, 
         phoneVerified: false,
+        emailVerified: false,
         candidateIndex: buildCandidateIndex({ district: formData.district, ward: formData.ward, uid: user.uid }),
         createdAt: serverTimestamp(), 
         updatedAt: serverTimestamp(), 
@@ -101,10 +111,34 @@ export default function Register() {
           console.warn('Photo upload failed during registration', e);
         }
       }
+
+      // Notify district controller(s) so the new candidate appears instantly in their workflow.
+      try {
+        const controllers = await getDocs(
+          query(collection(db, 'users'), where('role', '==', 'controller'), where('district', '==', formData.district), limit(10)),
+        );
+        await Promise.all(
+          controllers.docs.map((d) =>
+            sendNotification({
+              recipientId: d.id,
+              title: 'New candidate registered',
+              message: `${formData.fullName} (${formData.phoneNumber}) â€¢ ${formData.ward || ''}`,
+              targetPath: '/controller/candidates',
+            }),
+          ),
+        );
+      } catch {
+        // Never block registration on notifications.
+      }
  
-      navigate('/verify-phone', { replace: true });
+      navigate(`/verify-email?email=${encodeURIComponent(formData.contactEmail)}`, { replace: true });
     } catch (err: any) { 
       console.error(err); 
+      if (err?.code === 'auth/email-already-in-use') {
+        setExistingAccount(true);
+        setError('This phone number is already registered. Please login instead.');
+        return;
+      }
       if (err.code === 'auth/operation-not-allowed') { 
         const url = getAuthProvidersConsoleUrl();
         setError(
@@ -177,6 +211,17 @@ export default function Register() {
                     Create Demo Candidate (PIN {DEMO_PIN})
                   </button>
                 )}
+                {existingAccount && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(`/login?role=candidate&phone=${encodeURIComponent(formData.phoneNumber)}`, { replace: true })
+                    }
+                    className="mt-2 text-xs font-black uppercase tracking-widest text-primary hover:underline"
+                  >
+                    Go to Login
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -199,12 +244,13 @@ export default function Register() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Email Address (Optional)</label>
+                  <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Email Address</label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                     <input
                       type="email"
                       name="contactEmail"
+                      required
                       className="glass-input pl-11"
                       placeholder="you@example.com"
                       value={formData.contactEmail}

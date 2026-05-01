@@ -23,16 +23,19 @@
 
   "nav.executiveStats": "Executive Stats",
   "nav.approvals": "Approvals",
+  "nav.applicationApprovals": "Application Approvals",
   "nav.analytics": "Global Analytics",
+  "nav.dossiers": "Dossiers",
   "nav.userDirectory": "User Directory",
   "nav.systemSecurity": "System Security",
   "nav.internalComms": "Internal Comms",
-  "nav.systemConfig": "System Config",
+  "nav.systemConfig": "Profile Settings",
 
   "nav.diagnostics": "Diagnostics",
   "nav.securityLogs": "Security Logs",
   "nav.userLookup": "User Lookup",
   "nav.presence": "Presence",
+  "nav.devTools": "Developer Tools",
   "nav.systemTools": "System Tools",
 
   "login.portal": "Official Access Portal",
@@ -42,6 +45,9 @@
   "login.staySignedIn": "Stay Signed In",
   "login.reset": "Reset Access",
   "login.enter": "Enter Portal",
+  "login.noticeCandidate": "New here? Create a candidate account in seconds.",
+  "login.noticeDeveloper": "Developer access is restricted and audited.",
+  "login.noticeInvited": "Controller, Chairman, and Administrator accounts are invitation-only.",
 
   "resetOtp.link": "Reset via OTP",
   "resetOtp.title": "Reset Access PIN",
@@ -71,5 +77,6 @@
   "role.candidate": "Candidate",
   "role.controller": "Controller",
   "role.chairman": "Chairman",
+  "role.administrator": "Administrator",
   "role.developer": "Developer"
 }

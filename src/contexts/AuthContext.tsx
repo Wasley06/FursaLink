@@ -42,29 +42,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      
-      if (user) {
-        // Subscribe to profile changes
-        const docRef = doc(db, 'users', user.uid);
-        const unsubscribeProfile = onSnapshot(docRef, (docSnap) => {
-          if (docSnap.exists()) {
-            const raw = { id: docSnap.id, ...docSnap.data() } as UserProfile;
-            setProfile({ ...raw, role: normalizeStoredRole((raw as any).role) } as UserProfile);
-          } else {
-            setProfile(null);
-          }
-          setLoading(false);
-        });
-        return () => unsubscribeProfile();
+    let unsubscribeProfile: null | (() => void) = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (nextUser) => {
+      setUser(nextUser);
+
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
+      }
+
+      if (nextUser) {
+        setLoading(true);
+        const docRef = doc(db, 'users', nextUser.uid);
+        unsubscribeProfile = onSnapshot(
+          docRef,
+          (docSnap) => {
+            if (docSnap.exists()) {
+              const raw = { id: docSnap.id, ...docSnap.data() } as UserProfile;
+              setProfile({ ...raw, role: normalizeStoredRole((raw as any).role) } as UserProfile);
+            } else {
+              setProfile(null);
+            }
+            setLoading(false);
+          },
+          () => setLoading(false),
+        );
       } else {
         setProfile(null);
         setLoading(false);
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      if (unsubscribeProfile) unsubscribeProfile();
+      unsubscribeAuth();
+    };
   }, []);
 
   const signOut = async () => {

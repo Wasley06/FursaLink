@@ -1,4 +1,4 @@
-export type DemoRole = 'candidate' | 'controller' | 'chairman';
+export type DemoRole = 'candidate' | 'controller' | 'chairman' | 'administrator';
 
 export type DemoSession = {
   uid: string;
@@ -33,6 +33,7 @@ export const DEMO_USERS: Record<DemoRole, Omit<DemoSession, 'uid'>> = {
   candidate: { role: 'candidate', fullName: 'Demo Candidate', phoneNumber: '0777000001' },
   controller: { role: 'controller', fullName: 'Demo Controller', phoneNumber: '0777000002' },
   chairman: { role: 'chairman', fullName: 'Demo Chairman', phoneNumber: '0777000003' },
+  administrator: { role: 'administrator', fullName: 'Demo Administrator', phoneNumber: '0777000004' },
 };
 
 const rawPin = (import.meta as any).env?.VITE_DEMO_PIN;

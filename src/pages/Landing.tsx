@@ -8,6 +8,7 @@ import {
   Briefcase,
   FileText,
   Globe,
+  Gavel,
   ShieldCheck,
   User,
   Users,
@@ -73,6 +74,12 @@ export default function Landing() {
                 Sign In <ArrowRight className="w-4 h-4 text-primary" />
               </Link>
               <Link
+                to="/login?role=candidate"
+                className="flex items-center justify-between rounded-2xl border border-white/50 bg-white/30 backdrop-blur-md px-4 py-3 text-navy font-extrabold hover:bg-white/45 transition"
+              >
+                Candidate Login <ArrowRight className="w-4 h-4 text-primary" />
+              </Link>
+              <Link
                 to="/register"
                 className="flex items-center justify-between rounded-2xl border border-white/50 bg-white/30 backdrop-blur-md px-4 py-3 text-navy font-extrabold hover:bg-white/45 transition"
               >
@@ -116,8 +123,11 @@ export default function Landing() {
                 <Bell className="w-4 h-4 text-primary" />
                 Notices
               </div>
-              <Link to="/login" className="btn-primary py-2.5 px-5 text-xs font-black uppercase tracking-widest">
-                Sign In
+              <Link to="/register" className="btn-outline py-2.5 px-5 text-xs font-black uppercase tracking-widest border-white/50 bg-white/30">
+                Candidate Register
+              </Link>
+              <Link to="/login?role=candidate" className="btn-primary py-2.5 px-5 text-xs font-black uppercase tracking-widest">
+                Candidate Login
               </Link>
             </div>
           </header>
@@ -143,7 +153,7 @@ export default function Landing() {
                 </p>
               </div>
 
-              <div className="grid gap-5 md:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="premium-card">
                   <div className="flex items-center justify-between">
                     <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center">
@@ -181,6 +191,27 @@ export default function Landing() {
                       Login
                     </Link>
                     <Link to="/register/invite/controller" className="btn-outline flex-1 justify-center py-2.5 text-xs font-black uppercase tracking-widest border-white/50 bg-white/30">
+                      Invite
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="premium-card">
+                  <div className="flex items-center justify-between">
+                    <div className="w-11 h-11 rounded-2xl bg-gold/10 border border-gold/15 flex items-center justify-center">
+                      <Gavel className="w-5 h-5 text-gold" />
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-gold/80">Invite</div>
+                  </div>
+                  <div className="mt-4 text-lg font-extrabold text-navy">Administrator</div>
+                  <p className="mt-1 text-xs text-muted font-medium">
+                    Approvals workflow, dossier reviews, analytics, and reporting.
+                  </p>
+                  <div className="mt-5 flex gap-2">
+                    <Link to="/login?role=administrator" className="btn-primary flex-1 justify-center py-2.5 text-xs font-black uppercase tracking-widest">
+                      Login
+                    </Link>
+                    <Link to="/register/invite/administrator" className="btn-outline flex-1 justify-center py-2.5 text-xs font-black uppercase tracking-widest border-white/50 bg-white/30">
                       Invite
                     </Link>
                   </div>
@@ -262,7 +293,7 @@ export default function Landing() {
                 <div className="text-[10px] font-black uppercase tracking-widest text-navy/50">Notice</div>
                 <div className="mt-2 text-sm font-extrabold text-navy">Officer accounts are invite-only</div>
                 <p className="mt-2 text-xs text-muted font-medium">
-                  Controllers and Chairmen register via a secure invitation link provided by the office administrator.
+                  Controllers, Administrators, and Chairmen register via a secure invitation link provided by the office administrator.
                 </p>
                 <div className="mt-4 flex gap-2">
                   <Link to="/login?role=controller" className="btn-outline flex-1 justify-center py-2.5 text-xs font-black uppercase tracking-widest border-white/50 bg-white/30">

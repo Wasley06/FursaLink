@@ -23,16 +23,19 @@
 
   "nav.executiveStats": "Takwimu Kuu",
   "nav.approvals": "Idhini",
+  "nav.applicationApprovals": "Idhini za Maombi",
   "nav.analytics": "Uchambuzi wa Taifa",
+  "nav.dossiers": "Dosi",
   "nav.userDirectory": "Orodha ya Watumiaji",
   "nav.systemSecurity": "Usalama wa Mfumo",
   "nav.internalComms": "Mawasiliano ya Ndani",
-  "nav.systemConfig": "Mipangilio ya Mfumo",
+  "nav.systemConfig": "Mipangilio ya Profaili",
 
   "nav.diagnostics": "Uchunguzi",
   "nav.securityLogs": "Kumbukumbu za Usalama",
   "nav.userLookup": "Tafuta Mtumiaji",
   "nav.presence": "Upo Hapo",
+  "nav.devTools": "Zana za Msanidi",
   "nav.systemTools": "Zana za Mfumo",
 
   "login.portal": "Lango Rasmi la Kuingia",
@@ -42,6 +45,9 @@
   "login.staySignedIn": "Kaa Umeingia",
   "login.reset": "Weka Upya",
   "login.enter": "Ingia Mfumo",
+  "login.noticeCandidate": "Mgeni? Tengeneza akaunti ya mwombaji kwa sekunde chache.",
+  "login.noticeDeveloper": "Ufikaji wa wasanidi ni wa kikomo na unakaguliwa.",
+  "login.noticeInvited": "Akaunti za Msimamizi, Mwenyekiti, na Administrator ni kwa mwaliko tu.",
 
   "resetOtp.link": "Weka Upya kwa OTP",
   "resetOtp.title": "Weka Upya Namba ya Siri",
@@ -71,5 +77,6 @@
   "role.candidate": "Mwombaji",
   "role.controller": "Msimamizi",
   "role.chairman": "Mwenyekiti",
+  "role.administrator": "Administrator",
   "role.developer": "Msanidi"
 }

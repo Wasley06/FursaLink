@@ -44,6 +44,10 @@ function Overview() {
   const [recentJobs, setRecentJobs] = useState<Job[]>([]);
   const [stats, setStats] = useState({ applied: 0, approved: 0, pending: 0 });
   const [notices, setNotices] = useState<Notice[]>([]);
+  const contactEmail = String(profile?.contactEmail || '').trim();
+  const hasEmail = contactEmail.includes('@');
+  const isVerified = hasEmail ? profile?.emailVerified : profile?.phoneVerified;
+  const verifyPath = isVerified ? '/candidate/settings' : hasEmail ? '/verify-email' : '/verify-phone';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -79,7 +83,7 @@ function Overview() {
     <div className="space-y-6">
       {/* Summary Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div className="premium-card flex flex-col justify-between min-h-[160px] bg-navy text-white relative overflow-hidden">
+        <Link to="/candidate/settings" className="premium-card flex flex-col justify-between min-h-[160px] bg-navy text-white relative overflow-hidden hover:opacity-95 transition-opacity">
           <div className="relative z-10">
             <div className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Account Health</div>
             <div className="text-2xl font-extrabold text-white">Profile: {profile?.profileProgress}%</div>
@@ -91,9 +95,9 @@ function Overview() {
             <p className="text-[10px] text-white/60 font-medium">Complete your profile to unlock <span className="text-gold">AI Smart Match</span></p>
           </div>
           <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-primary/20 rounded-full blur-3xl" />
-        </div>
+        </Link>
 
-        <div className="premium-card flex flex-col justify-between min-h-[160px]">
+        <Link to="/candidate/applications" className="premium-card flex flex-col justify-between min-h-[160px] hover:bg-sky/20 transition-colors">
            <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Active Track</div>
               <div className="text-2xl font-extrabold text-navy">{stats.applied} Applications</div>
@@ -102,15 +106,15 @@ function Overview() {
               <span className="status-pill status-approved text-[10px]">{stats.approved} Approved</span>
               <span className="status-pill status-pending text-[10px]">{stats.pending} Pending</span>
            </div>
-        </div>
+        </Link>
 
-        <div className="premium-card flex flex-col justify-between min-h-[160px] border-emerald/20 bg-emerald/5">
+        <Link to="/candidate/jobs" className="premium-card flex flex-col justify-between min-h-[160px] border-emerald/20 bg-emerald/5 hover:bg-emerald/10 transition-colors">
            <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-emerald/60 mb-1">Opportunities</div>
               <div className="text-2xl font-extrabold text-navy">{recentJobs.length} New Matches</div>
            </div>
-           <Link to="/candidate/jobs" className="text-xs font-bold text-emerald border-b border-emerald/20 pb-0.5 self-start hover:border-emerald transition-all">Explore Job Board</Link>
-        </div>
+           <div className="text-xs font-bold text-emerald border-b border-emerald/20 pb-0.5 self-start">Explore Job Board</div>
+        </Link>
       </div>
 
       <div className="bento-grid grid-cols-1 lg:grid-cols-3">
@@ -150,7 +154,7 @@ function Overview() {
 
         {/* Support & Notices */}
         <div className="lg:col-span-1 space-y-5">
-           <div className="premium-card overflow-hidden relative min-h-[220px]">
+           <Link to="/candidate/notices" className="premium-card overflow-hidden relative min-h-[220px] hover:bg-sky/20 transition-colors">
               <h3 className="text-base font-bold text-navy mb-4 relative z-10">Gov Announcements</h3>
               <div className="space-y-4 relative z-10">
                  {notices.map(notice => (
@@ -166,9 +170,10 @@ function Overview() {
                    <p className="text-xs text-muted italic">No active notices.</p>
                  )}
               </div>
-           </div>
+              <div className="mt-4 text-[10px] font-black uppercase tracking-widest text-primary">Open notices</div>
+           </Link>
 
-           <div className="premium-card bg-gold/5 border-gold/20 flex flex-col justify-between h-[180px]">
+           <Link to={verifyPath} className="premium-card bg-gold/5 border-gold/20 flex flex-col justify-between h-[180px] hover:bg-gold/10 transition-colors">
               <div>
                  <div className="flex items-center gap-3 mb-2">
                     <div className="w-8 h-8 rounded-lg bg-gold/20 flex items-center justify-center text-gold">
@@ -178,8 +183,10 @@ function Overview() {
                  </div>
                  <p className="text-[10px] text-muted font-medium italic">Verified profiles are 3x more likely to be shortlisted by agencies.</p>
               </div>
-              <button className="btn-primary w-full py-2.5 text-[11px] rounded-xl bg-gold hover:bg-warning shadow-gold/20 border-none transition-all">Upgrade Profile</button>
-           </div>
+              <span className="btn-primary w-full py-2.5 text-[11px] rounded-xl bg-gold hover:bg-warning shadow-gold/20 border-none transition-all">
+                {isVerified ? 'View profile' : hasEmail ? 'Verify email' : 'Verify phone'}
+              </span>
+           </Link>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireFirebaseUser } from '../_lib/firebaseAdmin';
-import { getSupabaseBuckets, getSupabaseServer } from '../_lib/supabaseServer';
+import { requireFirebaseUser } from '../_lib/firebaseAdmin.js';
+import { getSupabaseBuckets, getSupabaseServer } from '../_lib/supabaseServer.js';
 
 type UploadKind = 'profile' | 'cv' | 'document';
 

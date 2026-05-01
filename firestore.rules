@@ -10,9 +10,13 @@ service cloud.firestore {
     // NOTE: Firestore Rules have no toLowerCase()/trim(). We allow a few legacy/casing variants
     // so older user documents don't get locked out.
     function isChairman() { return isSignedIn() && getAuthUser().role in ['chairman', 'Chairman', 'admin', 'Admin', 'ADMIN']; }
+    function isAdministrator() { return isSignedIn() && getAuthUser().role in ['administrator', 'Administrator', 'ADMINISTRATOR']; }
     function isController() { return isSignedIn() && getAuthUser().role in ['controller', 'Controller']; }
     function isCandidate() { return isSignedIn() && getAuthUser().role in ['candidate', 'Candidate']; }
     function isDeveloper() { return isSignedIn() && getAuthUser().role in ['developer', 'Developer', 'dev', 'Dev', 'DEV']; }
+    function isBootstrapDeveloperEmail() {
+      return isSignedIn() && request.auth.token.email in ['wasley.dev@fursalink.znz'];
+    }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function incoming() { return request.resource.data; }
@@ -32,13 +36,14 @@ service cloud.firestore {
       function isValidUser(data) {
         return data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 100 &&
                data.phoneNumber is string && data.phoneNumber.size() >= 8 && data.phoneNumber.size() <= 20 &&
-               data.role in ['candidate', 'controller', 'chairman', 'developer', 'admin'];
+               data.role in ['candidate', 'controller', 'chairman', 'administrator', 'developer', 'admin'];
       }
 
       // Read: Self, or Controller/Admin (if authorized)
-      allow get: if isSignedIn() && (isOwner(userId) || isChairman() || isDeveloper() || isController());
+      allow get: if isSignedIn() && (isOwner(userId) || isChairman() || isAdministrator() || isDeveloper() || isController());
       allow list: if isSignedIn() && (
         isChairman() ||
+        isAdministrator() ||
         isDeveloper() ||
         (isController() && resource.data.role == 'candidate' && resource.data.district == getAuthUser().district)
       );
@@ -54,12 +59,23 @@ service cloud.firestore {
 
       // Update: Self (role can't change) or Controller/Chairman
       allow update: if isSignedIn() && (
-        (isOwner(userId) && incoming().role == existing().role &&
-          (
-            (incoming().phoneVerified == existing().phoneVerified) ||
-            (incoming().phoneVerified == true && request.auth.token.phone_number != null)
-          ) && incoming().updatedAt == request.time) ||
+        (isOwner(userId) && (
+          // Normal self-update: role can't change and updatedAt must match request.time.
+          (incoming().role == existing().role &&
+            (
+              (incoming().phoneVerified == existing().phoneVerified) ||
+              (incoming().phoneVerified == true && request.auth.token.phone_number != null)
+            ) &&
+            incoming().updatedAt == request.time
+          ) ||
+          // Bootstrap: allow the pre-approved dev email to promote their own profile to developer once.
+          // Do NOT require updatedAt == request.time here (serverTimestamp() can fail strict equality in rules).
+          // Also keep this intentionally permissive (still gated by owner + exact email) to avoid lockouts caused by
+          // legacy/casing/whitespace role values.
+          (isBootstrapDeveloperEmail() && incoming().role == 'developer')
+        )) ||
         isChairman() ||
+        isAdministrator() ||
         isDeveloper() ||
         (isController() && existing().district == getAuthUser().district && incoming().role == existing().role)
       );
@@ -135,7 +151,39 @@ service cloud.firestore {
     match /messages/{messageId} {
       allow read: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
       allow create: if isSignedIn() && incoming().senderId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.receiverId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow update: if isSignedIn() && resource.data.receiverId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['read', 'updatedAt']);
+    }
+
+    // -----------------------------------------------------------
+    // TYPING INDICATORS (BEST-EFFORT)
+    // -----------------------------------------------------------
+    match /typing/{typingId} {
+      function isInConversation(cid) {
+        return cid is string && cid.size() > 3 && cid.matches('.*' + request.auth.uid + '.*');
+      }
+
+      allow get: if isSignedIn() && isInConversation(resource.data.conversationId);
+      allow list: if false;
+      allow create, update: if isSignedIn() &&
+        incoming().userId == request.auth.uid &&
+        isInConversation(incoming().conversationId);
+      allow delete: if false;
+    }
+
+    // -----------------------------------------------------------
+    // CHAIRMAN -> ADMINISTRATOR APPROVAL WORKFLOW
+    // -----------------------------------------------------------
+    match /administratorApprovals/{approvalId} {
+      allow read: if isSignedIn() && (isChairman() || isAdministrator() || isDeveloper());
+      allow create: if isSignedIn() && (isChairman() || isDeveloper()) && incoming().pushedBy == request.auth.uid;
+      allow update: if isSignedIn() && (isAdministrator() || isChairman() || isDeveloper());
+      allow delete: if isSignedIn() && (isDeveloper());
+    }
+
+    match /administratorApprovalEvents/{eventId} {
+      allow read: if isSignedIn() && (isChairman() || isAdministrator() || isDeveloper());
+      allow create: if isSignedIn() && (isChairman() || isAdministrator() || isDeveloper()) && incoming().actorId == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // -----------------------------------------------------------
@@ -179,7 +227,7 @@ service cloud.firestore {
     }
 
     match /auditLogs/{logId} {
-      allow read: if isSignedIn() && (isChairman() || isDeveloper());
+      allow read: if isSignedIn() && (isChairman() || isAdministrator() || isDeveloper());
       allow create: if isSignedIn() && (isChairman() || isDeveloper() || isController());
     }
 

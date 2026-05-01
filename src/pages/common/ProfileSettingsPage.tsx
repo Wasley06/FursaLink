@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, updateProfile } from 'firebase/auth';
-import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, limit, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { Camera, KeyRound, Loader2, User } from 'lucide-react';
 import { auth, db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,24 +9,48 @@ import { uploadUserFile } from '../../lib/uploads';
 export default function ProfileSettingsPage({ title }: { title: string }) {
   const { profile } = useAuth();
 
-  const initial = useMemo(
-    () => ({
+  const initial = useMemo(() => {
+    const prefs = (profile as any)?.preferences || {};
+    return {
       fullName: profile?.fullName || '',
       photoUrl: profile?.photoUrl || '',
-    }),
-    [profile],
-  );
+      notifyInApp: prefs.notifyInApp ?? true,
+      notifyEmail: prefs.notifyEmail ?? false,
+      notifyPush: prefs.notifyPush ?? true,
+      themeMode: prefs.themeMode ?? 'auto',
+      securityAlerts: prefs.securityAlerts ?? true,
+    };
+  }, [profile]);
 
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [uploadPct, setUploadPct] = useState<number>(0);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [activity, setActivity] = useState<any[]>([]);
+  const [activityError, setActivityError] = useState<string>('');
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
   React.useEffect(() => setForm(initial), [initial]);
+
+  useEffect(() => {
+    const run = async () => {
+      if (!profile?.id) return;
+      setActivityError('');
+      try {
+        const snap = await getDocs(
+          query(collection(db, 'auditLogs'), where('actorId', '==', profile.id), orderBy('createdAt', 'desc'), limit(10)),
+        );
+        setActivity(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (e: any) {
+        setActivity([]);
+        setActivityError(e?.code === 'permission-denied' ? 'Activity logs are restricted by policy.' : 'Failed to load activity logs.');
+      }
+    };
+    run();
+  }, [profile?.id]);
 
   const saveProfile = async () => {
     if (!profile) return;
@@ -37,6 +61,13 @@ export default function ProfileSettingsPage({ title }: { title: string }) {
       await updateDoc(doc(db, 'users', profile.id), {
         fullName: form.fullName,
         photoUrl: form.photoUrl || '',
+        preferences: {
+          notifyInApp: !!form.notifyInApp,
+          notifyEmail: !!form.notifyEmail,
+          notifyPush: !!form.notifyPush,
+          themeMode: form.themeMode,
+          securityAlerts: !!form.securityAlerts,
+        },
         updatedAt: serverTimestamp(),
       } as any);
 
@@ -58,6 +89,8 @@ export default function ProfileSettingsPage({ title }: { title: string }) {
     setError('');
     setInfo('');
     setUploadPct(0);
+    const previewUrl = URL.createObjectURL(file);
+    setForm((p) => ({ ...p, photoUrl: previewUrl }));
     try {
       const up = await uploadUserFile({
         uid: profile.id,
@@ -82,9 +115,11 @@ export default function ProfileSettingsPage({ title }: { title: string }) {
       setInfo('Photo uploaded.');
     } catch (e: any) {
       setError(e?.message || 'Failed to upload photo.');
+      setForm((p) => ({ ...p, photoUrl: profile?.photoUrl || '' }));
     } finally {
       setSaving(false);
       setUploadPct(0);
+      try { URL.revokeObjectURL(previewUrl); } catch {}
     }
   };
 
@@ -162,6 +197,90 @@ export default function ProfileSettingsPage({ title }: { title: string }) {
         <button disabled={saving} onClick={saveProfile} className="btn-primary w-full py-3">
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Profile'}
         </button>
+      </div>
+
+      <div className="premium-card space-y-4">
+        <div className="text-sm font-extrabold text-navy">Notification Preferences</div>
+        <div className="grid md:grid-cols-3 gap-4">
+          {[
+            { key: 'notifyInApp', label: 'In-app alerts' },
+            { key: 'notifyPush', label: 'Push notifications' },
+            { key: 'notifyEmail', label: 'Email notifications' },
+          ].map((it) => (
+            <label key={it.key} className="flex items-center justify-between gap-3 rounded-2xl border border-white/50 bg-white/30 backdrop-blur-md px-4 py-3">
+              <div className="text-xs font-black uppercase tracking-widest text-navy">{it.label}</div>
+              <input
+                type="checkbox"
+                checked={!!(form as any)[it.key]}
+                onChange={(e) => setForm((p: any) => ({ ...p, [it.key]: e.target.checked }))}
+                className="rounded-md text-primary focus:ring-primary w-4 h-4 border-sky bg-white/50"
+              />
+            </label>
+          ))}
+        </div>
+        <div className="text-xs text-muted font-medium">Notification channels depend on device/browser support and Firebase configuration.</div>
+      </div>
+
+      <div className="premium-card space-y-4">
+        <div className="text-sm font-extrabold text-navy">Theme Settings</div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2">Theme Mode</label>
+            <select
+              className="input-field py-3"
+              value={form.themeMode}
+              onChange={(e) => setForm((p: any) => ({ ...p, themeMode: e.target.value }))}
+            >
+              <option value="auto">Auto (system)</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+          <div className="rounded-2xl border border-white/50 bg-white/30 backdrop-blur-md px-4 py-3">
+            <div className="text-[10px] font-black uppercase tracking-widest text-muted">Role theme</div>
+            <div className="text-sm font-extrabold text-navy mt-2">Accent color follows your role.</div>
+            <div className="text-xs text-muted font-medium mt-1">Admins and chairmen share the premium dashboard styling.</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="premium-card space-y-4">
+        <div className="text-sm font-extrabold text-navy">Security Settings</div>
+        <label className="flex items-center justify-between gap-3 rounded-2xl border border-white/50 bg-white/30 backdrop-blur-md px-4 py-3">
+          <div>
+            <div className="text-xs font-black uppercase tracking-widest text-navy">Security alerts</div>
+            <div className="text-xs text-muted font-medium mt-1">Notify on sensitive changes and sign-in anomalies.</div>
+          </div>
+          <input
+            type="checkbox"
+            checked={!!form.securityAlerts}
+            onChange={(e) => setForm((p: any) => ({ ...p, securityAlerts: e.target.checked }))}
+            className="rounded-md text-primary focus:ring-primary w-4 h-4 border-sky bg-white/50"
+          />
+        </label>
+        <div className="text-xs text-muted font-medium">Some security features may require server-side enforcement and audit policies.</div>
+      </div>
+
+      <div className="premium-card space-y-4">
+        <div className="text-sm font-extrabold text-navy">Activity Logs</div>
+        {activityError ? <div className="text-xs text-muted font-medium">{activityError}</div> : null}
+        {activity.length === 0 ? (
+          <div className="text-sm text-muted italic">No recent activity logs available.</div>
+        ) : (
+          <div className="space-y-2">
+            {activity.map((a) => (
+              <div key={a.id} className="rounded-2xl border border-white/50 bg-white/30 backdrop-blur-md px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs font-black uppercase tracking-widest text-primary">{String(a.action || 'activity')}</div>
+                  <div className="text-[11px] text-muted font-bold">
+                    {a.createdAt?.toDate ? a.createdAt.toDate().toLocaleString() : '—'}
+                  </div>
+                </div>
+                {a.meta ? <pre className="mt-2 text-[11px] text-navy/70 overflow-auto">{JSON.stringify(a.meta, null, 2)}</pre> : null}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="premium-card space-y-4">

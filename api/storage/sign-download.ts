@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireFirebaseUser } from '../_lib/firebaseAdmin';
-import { getSupabaseServer } from '../_lib/supabaseServer';
+import { requireFirebaseUser } from '../_lib/firebaseAdmin.js';
+import { getSupabaseServer } from '../_lib/supabaseServer.js';
 
 function json(res: VercelResponse, status: number, body: any) {
   res.status(status).setHeader('content-type', 'application/json').send(JSON.stringify(body));

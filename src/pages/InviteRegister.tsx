@@ -43,6 +43,7 @@ export default function InviteRegister() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [existingAccount, setExistingAccount] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -72,6 +73,7 @@ export default function InviteRegister() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteRole) return;
+    setExistingAccount(false);
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -124,6 +126,11 @@ export default function InviteRegister() {
       }
     } catch (err: any) { 
       console.error(err); 
+      if (err?.code === 'auth/email-already-in-use') {
+        setExistingAccount(true);
+        setError('This phone number is already registered. Please login instead.');
+        return;
+      }
       if (err.code === 'auth/operation-not-allowed') { 
         const url = getAuthProvidersConsoleUrl();
         setError(
@@ -204,6 +211,17 @@ export default function InviteRegister() {
                     className="mt-2 text-xs font-black uppercase tracking-widest text-primary hover:underline"
                   >
                     Create Demo {roleLabel} (PIN {DEMO_PIN})
+                  </button>
+                )}
+                {existingAccount && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(`/login?role=${inviteRole}&phone=${encodeURIComponent(formData.phoneNumber)}`, { replace: true })
+                    }
+                    className="mt-2 text-xs font-black uppercase tracking-widest text-primary hover:underline"
+                  >
+                    Go to Login
                   </button>
                 )}
               </div>

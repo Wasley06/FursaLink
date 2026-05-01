@@ -12,6 +12,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [uploadPct, setUploadPct] = useState<number>(0);
   const [error, setError] = useState('');
+  const [uploadLabel, setUploadLabel] = useState<string>('');
   const [cvRef, setCvRef] = useState<any>(profile?.cvRef);
   const [documentsRef, setDocumentsRef] = useState<any>(profile?.documentsRef);
 
@@ -65,6 +66,9 @@ export default function SettingsPage() {
     setSaving(true);
     setError('');
     setUploadPct(0);
+    setUploadLabel('Uploading photo…');
+    const previewUrl = URL.createObjectURL(file);
+    setForm((p) => ({ ...p, photoUrl: previewUrl }));
     try {
       const up = await uploadUserFile({
         uid: profile.id,
@@ -77,9 +81,12 @@ export default function SettingsPage() {
       await updateDoc(doc(db, 'users', profile.id), { photoUrl: up.url || '', photoRef: up.ref, updatedAt: serverTimestamp() } as any);
     } catch (e: any) {
       setError(e?.message || 'Failed to upload photo.');
+      setForm((p) => ({ ...p, photoUrl: profile?.photoUrl || '' }));
     } finally {
       setSaving(false);
       setUploadPct(0);
+      setUploadLabel('');
+      try { URL.revokeObjectURL(previewUrl); } catch {}
     }
   };
 
@@ -88,15 +95,17 @@ export default function SettingsPage() {
     setSaving(true);
     setError('');
     setUploadPct(0);
+    setUploadLabel('Uploading CV…');
     try {
       const up = await uploadUserFile({ uid: profile.id, file, kind: 'cv', nameHint: 'cv', onProgress: setUploadPct });
       setCvRef(up.ref);
-      await updateDoc(doc(db, 'users', profile.id), { cvRef: up.ref, cvUrl: '', updatedAt: serverTimestamp() } as any);
+      await updateDoc(doc(db, 'users', profile.id), { cvRef: up.ref, cvUrl: up.url || '', updatedAt: serverTimestamp() } as any);
     } catch (e: any) {
       setError(e?.message || 'Failed to upload CV.');
     } finally {
       setSaving(false);
       setUploadPct(0);
+      setUploadLabel('');
     }
   };
 
@@ -105,16 +114,18 @@ export default function SettingsPage() {
     setSaving(true);
     setError('');
     setUploadPct(0);
+    setUploadLabel('Uploading document…');
     try {
       const up = await uploadUserFile({ uid: profile.id, file, kind: 'document', nameHint: file.name, onProgress: setUploadPct });
       // Minimal: store latest extra document ref. (Can be extended to an array.)
       setDocumentsRef(up.ref);
-      await updateDoc(doc(db, 'users', profile.id), { documentsRef: up.ref, documentsUrl: '', updatedAt: serverTimestamp() } as any);
+      await updateDoc(doc(db, 'users', profile.id), { documentsRef: up.ref, documentsUrl: up.url || '', updatedAt: serverTimestamp() } as any);
     } catch (e: any) {
       setError(e?.message || 'Failed to upload document.');
     } finally {
       setSaving(false);
       setUploadPct(0);
+      setUploadLabel('');
     }
   };
 
@@ -140,6 +151,17 @@ export default function SettingsPage() {
             <p className="text-sm text-muted font-medium">Update your candidate profile and preferences.</p>
           </div>
         </div>
+        {(saving && uploadPct > 0) || uploadLabel ? (
+          <div className="mt-4 rounded-2xl border border-white/50 bg-white/30 backdrop-blur-md px-5 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-black uppercase tracking-widest text-muted">{uploadLabel || 'Uploading…'}</div>
+              <div className="text-xs font-extrabold text-navy">{uploadPct}%</div>
+            </div>
+            <div className="mt-3 h-1.5 w-full bg-sky rounded-full overflow-hidden">
+              <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${uploadPct}%` }} />
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="premium-card space-y-4">

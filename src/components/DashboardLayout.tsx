@@ -6,6 +6,7 @@ import {
   LayoutDashboard, 
   Briefcase, 
   FileText, 
+  FileCheck,
   Bell, 
   Calendar, 
   MessageSquare, 
@@ -21,12 +22,14 @@ import {
   Users,
   Shield,
   BookOpen,
-  TrendingUp
+  TrendingUp,
+  Wrench
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useI18n } from '../contexts/I18nContext';
 import { startPresence, stopPresence } from '../lib/presence';
 import { useNotifications } from '../contexts/NotificationsContext';
+import { useSystemConfig } from '../contexts/SystemConfigContext';
 
 interface SidebarItem {
   icon: any;
@@ -58,22 +61,43 @@ const controllerItems: SidebarItem[] = [
 const adminItems: SidebarItem[] = [
   { icon: LayoutDashboard, labelKey: 'nav.executiveStats', path: '/chairman' },
   { icon: FileText, labelKey: 'nav.approvals', path: '/chairman/approvals' },
+  { icon: FileCheck, labelKey: 'nav.applicationApprovals', path: '/chairman/application-approvals' },
   { icon: BarChart3, labelKey: 'nav.analytics', path: '/chairman/analytics' },
   { icon: Users, labelKey: 'nav.userDirectory', path: '/chairman/users' },
   { icon: Users, labelKey: 'nav.candidateDirectory', path: '/chairman/candidates' },
   { icon: Briefcase, labelKey: 'nav.jobs', path: '/chairman/jobs' },
-  { icon: Shield, labelKey: 'nav.systemSecurity', path: '/chairman/security' },
   { icon: MessageSquare, labelKey: 'nav.internalComms', path: '/chairman/messages' },
   { icon: Settings, labelKey: 'nav.systemConfig', path: '/chairman/settings' },
 ];
 
+const administratorItems: SidebarItem[] = [
+  { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/administrator' },
+  { icon: FileText, labelKey: 'nav.approvals', path: '/administrator/approvals' },
+  { icon: BarChart3, labelKey: 'nav.analytics', path: '/administrator/analytics' },
+  { icon: FileText, labelKey: 'nav.dossiers', path: '/administrator/dossiers' },
+  { icon: MessageSquare, labelKey: 'nav.messages', path: '/administrator/messages' },
+  { icon: Settings, labelKey: 'nav.systemConfig', path: '/administrator/settings' },
+];
+
 const developerItems: SidebarItem[] = [
   { icon: LayoutDashboard, labelKey: 'nav.diagnostics', path: '/developer' },
+  { icon: Wrench, labelKey: 'nav.devTools', path: '/developer/tools' },
   { icon: TrendingUp, labelKey: 'nav.presence', path: '/developer/presence' },
   { icon: Shield, labelKey: 'nav.securityLogs', path: '/developer/security' },
   { icon: Users, labelKey: 'nav.userLookup', path: '/developer/users' },
   { icon: Settings, labelKey: 'nav.systemTools', path: '/developer/system' },
   { icon: Settings, labelKey: 'nav.settings', path: '/developer/settings' },
+
+  // Full system control shortcuts
+  { icon: FileText, labelKey: 'nav.approvals', path: '/developer/approvals' },
+  { icon: BarChart3, labelKey: 'nav.analytics', path: '/developer/analytics' },
+  { icon: Briefcase, labelKey: 'nav.jobs', path: '/developer/jobs' },
+  { icon: Users, labelKey: 'nav.candidateDirectory', path: '/developer/candidates' },
+  { icon: Users, labelKey: 'nav.userDirectory', path: '/developer/directory' },
+  { icon: MessageSquare, labelKey: 'nav.messages', path: '/developer/messages' },
+  { icon: Shield, labelKey: 'nav.systemSecurity', path: '/developer/security-admin' },
+  { icon: Settings, labelKey: 'nav.systemConfig', path: '/developer/config' },
+  { icon: Bell, labelKey: 'nav.notices', path: '/developer/notices' },
 ];
 
 function BookOpenIcon(props: any) { return <BookOpen {...props} />; }
@@ -82,6 +106,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { profile, signOut } = useAuth();
   const { lang, setLang, t } = useI18n();
   const { items: notifications, unreadCount, markRead, markAllRead } = useNotifications();
+  const { config } = useSystemConfig();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -95,6 +120,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ? '/controller/settings'
         : profile?.role === 'chairman'
           ? '/chairman/settings'
+          : profile?.role === 'administrator'
+            ? '/administrator/settings'
           : profile?.role === 'developer'
             ? '/developer/settings'
             : '/dashboard';
@@ -105,6 +132,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       case 'candidate': return candidateItems;
       case 'controller': return controllerItems;
       case 'chairman': return adminItems;
+      case 'administrator': return administratorItems;
       case 'developer': return developerItems;
       default: return [];
     }
@@ -183,6 +211,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
+        {config?.announcementBanner?.enabled && config.announcementBanner.message && (
+          <div
+            className={cn(
+              'px-6 py-3 text-xs font-black uppercase tracking-widest border-b',
+              config.announcementBanner.level === 'critical'
+                ? 'bg-danger/10 text-danger border-danger/20'
+                : config.announcementBanner.level === 'warning'
+                  ? 'bg-amber/20 text-navy border-amber/40'
+                  : 'bg-primary/10 text-navy border-primary/20',
+            )}
+          >
+            {config.announcementBanner.message}
+          </div>
+        )}
         {/* Topbar */}
         <header className="h-20 bg-white/40 border-b border-white/50 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-40 relative">
           <div className="flex items-center gap-4">

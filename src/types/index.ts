@@ -1,4 +1,4 @@
-export type UserRole = 'candidate' | 'controller' | 'chairman' | 'developer';
+export type UserRole = 'candidate' | 'controller' | 'chairman' | 'administrator' | 'developer';
 // Back-compat for older documents and UI code
 export type StoredUserRole = UserRole | 'admin';
 
@@ -17,6 +17,7 @@ export interface UserProfile {
   phoneNumber: string;
   role: StoredUserRole;
   phoneVerified?: boolean;
+  emailVerified?: boolean;
   candidateIndex?: string;
   dob?: string;
   gender?: 'male' | 'female' | 'other';

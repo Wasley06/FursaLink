@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import en from '../i18n/en.json';
 import sw from '../i18n/sw.json';
+import { useSystemConfig } from './SystemConfigContext';
 
 export type Language = 'en' | 'sw';
 
@@ -22,10 +23,20 @@ type I18nContextValue = {
 const I18nContext = createContext<I18nContextValue | undefined>(undefined);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
+  const { config } = useSystemConfig();
   const [lang, setLang] = useState<Language>(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw === 'sw' ? 'sw' : 'en';
+    if (raw === 'sw' || raw === 'en') return raw;
+    return 'en';
   });
+
+  // If the user hasn't explicitly chosen a language, allow remote defaultLanguage to control initial behavior.
+  useEffect(() => {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const hasUserOverride = raw === 'sw' || raw === 'en';
+    if (hasUserOverride) return;
+    if (config?.defaultLanguage === 'sw' || config?.defaultLanguage === 'en') setLang(config.defaultLanguage);
+  }, [config?.defaultLanguage]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, lang);
@@ -46,4 +57,3 @@ export function useI18n() {
   if (!ctx) throw new Error('useI18n must be used within I18nProvider');
   return ctx;
 }
-

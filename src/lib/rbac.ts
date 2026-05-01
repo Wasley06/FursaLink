@@ -8,6 +8,9 @@ export type Permission =
   | 'approvals:read'
   | 'approvals:write'
   | 'approvals:decide'
+  | 'analytics:read'
+  | 'dossiers:read'
+  | 'dossiers:write'
   | 'users:read'
   | 'users:write'
   | 'messages:read'
@@ -47,6 +50,17 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'notices:read',
     'notices:write',
     'security:read',
+    'config:write',
+  ],
+  administrator: [
+    'approvals:read',
+    'approvals:write',
+    'approvals:decide',
+    'messages:read',
+    'messages:write',
+    'analytics:read',
+    'dossiers:read',
+    'dossiers:write',
     'config:write',
   ],
   developer: [

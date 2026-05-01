@@ -1,11 +1,25 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import type { Language } from './I18nContext';
 
 export type SystemConfig = {
   maintenanceEnabled?: boolean;
   maintenanceMessage?: string;
   minDesktopVersion?: string;
+  featureFlags?: Record<string, boolean>;
+  defaultLanguage?: Language;
+  announcementBanner?: {
+    enabled?: boolean;
+    level?: 'info' | 'warning' | 'critical';
+    message?: string;
+  };
+  themeOverrides?: {
+    chairman?: { primary?: string; primaryHover?: string };
+    candidate?: { primary?: string; primaryHover?: string };
+    controller?: { primary?: string; primaryHover?: string };
+    developer?: { primary?: string; primaryHover?: string };
+  };
   updatedAt?: any;
 };
 
@@ -42,4 +56,3 @@ export function useSystemConfig() {
   if (!ctx) throw new Error('useSystemConfig must be used within SystemConfigProvider');
   return ctx;
 }
-

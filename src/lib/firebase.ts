@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { browserLocalPersistence, getAuth, indexedDBLocalPersistence, setPersistence } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 import {
   doc,
@@ -15,6 +15,10 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, getFirestoreDatabaseId());
 export const auth = getAuth(app);
 export const storage = getStorage(app);
+
+// Stable, persistent auth sessions (best-effort).
+// Login also sets persistence explicitly, but this ensures consistent behavior across the app entrypoints.
+setPersistence(auth, indexedDBLocalPersistence).catch(() => setPersistence(auth, browserLocalPersistence).catch(() => {}));
 
 // Offline-first: enable Firestore local persistence so the app works offline and syncs automatically when online.
 // (Multi-tab when available; falls back to single-tab persistence.)

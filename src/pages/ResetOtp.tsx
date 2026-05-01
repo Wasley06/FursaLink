@@ -1,13 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { RecaptchaVerifier, signInWithPhoneNumber, updatePassword } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { AlertCircle, KeyRound, Loader2, Phone, ShieldCheck } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { normalizeTzPhoneE164 } from '../lib/phone';
 import { useTheme } from '../contexts/ThemeContext';
 import { useI18n } from '../contexts/I18nContext';
+import { OtpCodeInput } from '../components/OtpCodeInput';
 import { normalizeStoredRole } from '../lib/roles';
+import { getRecaptchaTokenV2Invisible } from '../lib/recaptcha';
+
+function formatOtpError(e: any) {
+  return e?.message || 'OTP failed. Please try again.';
+}
 
 export default function ResetOtp() {
   const navigate = useNavigate();
@@ -22,33 +27,39 @@ export default function ResetOtp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
-  const [confirmation, setConfirmation] = useState<any>(null);
-  const recaptchaRef = useRef<HTMLDivElement | null>(null);
+  const [challengeSent, setChallengeSent] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const serverRecaptchaRef = useRef<HTMLDivElement | null>(null);
+  const recaptchaSiteKey = (import.meta as any).env?.VITE_RECAPTCHA_SITE_KEY as string | undefined;
 
   useEffect(() => setThemeRole('candidate'), [setThemeRole]);
 
   const e164 = useMemo(() => normalizeTzPhoneE164(phoneNumber), [phoneNumber]);
 
-  const ensureRecaptcha = () => {
-    if ((window as any).__fursalinkRecaptchaReset) return (window as any).__fursalinkRecaptchaReset as RecaptchaVerifier;
-    const container = recaptchaRef.current;
-    if (!container) throw new Error('Recaptcha container missing');
-    const verifier = new RecaptchaVerifier(auth, container, { size: 'invisible' });
-    (window as any).__fursalinkRecaptchaReset = verifier;
-    return verifier;
-  };
-
   const sendOtp = async () => {
     setError('');
     setInfo('');
+    if (cooldown > 0) return;
     setLoading(true);
     try {
-      const verifier = ensureRecaptcha();
-      const result = await signInWithPhoneNumber(auth, e164, verifier);
-      setConfirmation(result);
+      const recaptchaToken =
+        recaptchaSiteKey && serverRecaptchaRef.current
+          ? await getRecaptchaTokenV2Invisible({ container: serverRecaptchaRef.current, siteKey: recaptchaSiteKey })
+          : undefined;
+      const res = await fetch('/api/otp/send-reset', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber, recaptchaToken }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.detail || body?.error || 'Failed to send OTP.');
+      setChallengeSent(true);
+      setVerified(false);
       setInfo(t('resetOtp.sent'));
+      setCooldown(60);
     } catch (e: any) {
-      setError(e?.message || t('resetOtp.sendFailed'));
+      setError(formatOtpError(e) || t('resetOtp.sendFailed'));
     } finally {
       setLoading(false);
     }
@@ -57,40 +68,48 @@ export default function ResetOtp() {
   const verifyOtp = async () => {
     setError('');
     setInfo('');
-    if (!confirmation) {
+    if (!challengeSent) {
       setError(t('resetOtp.sendFirst'));
       return;
     }
     setLoading(true);
     try {
-      await confirmation.confirm(code.trim());
+      const res = await fetch('/api/otp/verify-reset', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber, code: code.trim() }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.detail || body?.error || t('resetOtp.invalidCode'));
 
-      const uid = auth.currentUser?.uid;
-      if (!uid) throw new Error(t('resetOtp.notSignedIn'));
-
-      const snap = await getDoc(doc(db, 'users', uid));
-      if (!snap.exists()) {
-        await auth.signOut();
-        setConfirmation(null);
-        setError(t('resetOtp.noProfile'));
-        return;
+      // Optional role check: look up the candidate by phone after verification (best-effort).
+      try {
+        const snap = await getDoc(doc(db, 'users', auth.currentUser?.uid || '__missing'));
+        if (snap.exists()) {
+          const role = normalizeStoredRole((snap.data() as any)?.role);
+          if (role !== 'candidate') {
+            setError(t('resetOtp.roleMismatch'));
+            return;
+          }
+        }
+      } catch {
+        // ignore
       }
 
-      const role = normalizeStoredRole((snap.data() as any)?.role);
-      if (role !== 'candidate') {
-        await auth.signOut();
-        setConfirmation(null);
-        setError(t('resetOtp.roleMismatch'));
-        return;
-      }
-
+      setVerified(true);
       setInfo(t('resetOtp.verified'));
     } catch (e: any) {
-      setError(e?.message || t('resetOtp.invalidCode'));
+      setError(formatOtpError(e) || t('resetOtp.invalidCode'));
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const tmr = setInterval(() => setCooldown((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(tmr);
+  }, [cooldown]);
 
   const setNewPasswordNow = async () => {
     setError('');
@@ -105,10 +124,13 @@ export default function ResetOtp() {
     }
     setLoading(true);
     try {
-      if (!auth.currentUser) throw new Error(t('resetOtp.notSignedIn'));
-      await updatePassword(auth.currentUser, newPin);
-      await updateDoc(doc(db, 'users', auth.currentUser.uid), { updatedAt: serverTimestamp() } as any);
-      await auth.signOut();
+      const res = await fetch('/api/otp/reset-password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber, code: code.trim(), newPassword: newPin }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.detail || body?.error || t('resetOtp.failed'));
       setInfo(t('resetOtp.done'));
       navigate('/login?role=candidate', { replace: true });
     } catch (e: any) {
@@ -118,7 +140,7 @@ export default function ResetOtp() {
     }
   };
 
-  const otpVerified = !!auth.currentUser && !!confirmation;
+  const otpVerified = challengeSent && verified;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-sky p-6 overflow-hidden relative font-sans">
@@ -159,28 +181,21 @@ export default function ResetOtp() {
               <div className="mt-2 text-xs text-muted font-medium">{t('resetOtp.e164')}: <span className="font-bold text-navy">{e164}</span></div>
             </div>
 
-            <button disabled={loading || !phoneNumber.trim()} onClick={sendOtp} className="btn-primary w-full py-3 whitespace-nowrap">
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('resetOtp.send')}
+            <button disabled={loading || !phoneNumber.trim() || cooldown > 0} onClick={sendOtp} className="btn-primary w-full py-3 whitespace-nowrap">
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : cooldown > 0 ? `Resend in ${cooldown}s` : t('resetOtp.send')}
             </button>
 
             <div>
               <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">
                 {t('resetOtp.code')}
               </label>
-              <div className="relative">
-                <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  className="glass-input pl-11 tracking-[0.3em] text-center font-extrabold"
-                  placeholder="123456"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                />
+              <div className="flex items-center justify-center gap-3">
+                <KeyRound className="w-4 h-4 text-muted" />
+                <OtpCodeInput value={code} onChange={setCode} disabled={loading} />
               </div>
             </div>
 
-            <button disabled={loading || !confirmation || code.trim().length < 4} onClick={verifyOtp} className="btn-outline w-full py-3 whitespace-nowrap">
+            <button disabled={loading || !challengeSent || code.trim().length < 6} onClick={verifyOtp} className="btn-outline w-full py-3 whitespace-nowrap">
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('resetOtp.verify')}
             </button>
 
@@ -220,8 +235,7 @@ export default function ResetOtp() {
         </div>
       </div>
 
-      <div ref={recaptchaRef} />
+      <div ref={serverRecaptchaRef} className="sr-only" aria-hidden="true" />
     </div>
   );
 }
-

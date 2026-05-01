@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, limit, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, limit, onSnapshot, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Job, Application, UserProfile } from '../types';
 import DashboardLayout from '../components/DashboardLayout';
 import { motion } from 'motion/react';
+import { formatDistanceToNow } from 'date-fns';
 import JobsPage from './controller/JobsPage';
 import EditJobPage from './controller/EditJobPage';
 import CandidatesPage from './controller/CandidatesPage';
@@ -34,30 +35,52 @@ function ControllerOverview() {
   const [stats, setStats] = useState({ candidates: 0, jobs: 0, pendingApps: 0 });
   const [recentApplications, setRecentApplications] = useState<any[]>([]);
 
+  const toDate = (v: any) => {
+    if (!v) return null;
+    if (typeof v?.toDate === 'function') return v.toDate() as Date;
+    if (v instanceof Date) return v;
+    const n = typeof v === 'number' ? v : Date.parse(String(v));
+    return Number.isFinite(n) ? new Date(n) : null;
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      if (!profile) return;
+    if (!profile?.district) return;
 
-      // Stats - Filtered by District
-      const candQuery = query(collection(db, 'users'), where('role', '==', 'candidate'), where('district', '==', profile.district));
-      const jobsQuery = query(collection(db, 'jobs'), where('district', '==', profile.district));
-      const appsQuery = query(collection(db, 'applications'), where('status', '==', 'pending'));
+    const unsubCandidates = onSnapshot(
+      query(collection(db, 'users'), where('role', '==', 'candidate'), where('district', '==', profile.district)),
+      (snap) => setStats((p) => ({ ...p, candidates: snap.size })),
+    );
 
-      const [cSnap, jSnap, aSnap] = await Promise.all([
-        getDocs(candQuery),
-        getDocs(jobsQuery),
-        getDocs(appsQuery)
-      ]);
+    const unsubJobs = onSnapshot(
+      query(collection(db, 'jobs'), where('district', '==', profile.district)),
+      (snap) => setStats((p) => ({ ...p, jobs: snap.size })),
+    );
 
-      setStats({
-        candidates: cSnap.size,
-        jobs: jSnap.size,
-        pendingApps: aSnap.size // In a real app, apps would be filtered by job -> district
-      });
+    const unsubPending = onSnapshot(
+      query(
+        collection(db, 'applications'),
+        where('status', '==', 'pending'),
+        where('jobDistrict', '==', profile.district),
+      ),
+      (snap) => setStats((p) => ({ ...p, pendingApps: snap.size })),
+    );
 
-      setRecentApplications(aSnap.docs.slice(0, 5).map(d => ({ id: d.id, ...d.data() })));
+    const unsubRecent = onSnapshot(
+      query(
+        collection(db, 'applications'),
+        where('jobDistrict', '==', profile.district),
+        orderBy('appliedAt', 'desc'),
+        limit(5),
+      ),
+      (snap) => setRecentApplications(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    );
+
+    return () => {
+      unsubCandidates();
+      unsubJobs();
+      unsubPending();
+      unsubRecent();
     };
-    fetchData();
   }, [profile]);
 
   return (
@@ -80,11 +103,11 @@ function ControllerOverview() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {[
-          { label: 'Total Local Candidates', val: stats.candidates, sub: 'Unguja District', icon: Users, color: 'text-primary' },
-          { label: 'Active Recruitment', val: stats.jobs, sub: 'Posted Job Slots', icon: Briefcase, color: 'text-gold' },
-          { label: 'Unprocessed Files', val: stats.pendingApps, sub: 'Requires Review', icon: FileCheck, color: 'text-emerald' }
+          { label: 'Total Local Candidates', val: stats.candidates, sub: 'District candidates', icon: Users, color: 'text-primary', to: '/controller/candidates' },
+          { label: 'Active Recruitment', val: stats.jobs, sub: 'Posted job slots', icon: Briefcase, color: 'text-gold', to: '/controller/jobs' },
+          { label: 'Unprocessed Files', val: stats.pendingApps, sub: 'Requires review', icon: FileCheck, color: 'text-emerald', to: '/controller/applications' },
         ].map((stat, i) => (
-          <div key={i} className="premium-card">
+          <Link key={i} to={stat.to} className="premium-card hover:bg-sky/20 transition-colors block">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold text-muted uppercase tracking-wider">{stat.label}</span>
               <div className={`p-1.5 rounded-lg bg-sky/50 ${stat.color}`}>
@@ -93,7 +116,7 @@ function ControllerOverview() {
             </div>
             <div className="text-2xl font-extrabold text-navy">{stat.val}</div>
             <div className="text-[10px] text-muted mt-1 font-medium">{stat.sub}</div>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -118,13 +141,17 @@ function ControllerOverview() {
                 {recentApplications.map((app) => (
                   <tr key={app.id} className="hover:bg-sky/20 transition-colors group">
                     <td className="px-6 py-4">
-                      <div className="font-bold text-navy text-sm">Ali Mahmoud</div>
-                      <div className="text-[10px] text-muted uppercase font-bold tracking-tight">0777123456</div>
+                      <div className="font-bold text-navy text-sm">{app.userName || app.userId || 'Candidate'}</div>
+                      <div className="text-[10px] text-muted uppercase font-bold tracking-tight">{app.userPhone || 'â€”'}</div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-navy font-medium">Senior Accountant</td>
-                    <td className="px-6 py-4 text-xs text-muted">2h ago</td>
+                    <td className="px-6 py-4 text-sm text-navy font-medium">{app.jobTitle || app.jobId || 'â€”'}</td>
+                    <td className="px-6 py-4 text-xs text-muted">
+                      {toDate(app.appliedAt) ? formatDistanceToNow(toDate(app.appliedAt) as Date, { addSuffix: true }) : 'â€”'}
+                    </td>
                     <td className="px-6 py-4 text-right">
-                       <button className="btn-outline py-1 px-3 text-[10px] rounded-lg">Review File</button>
+                       <Link to="/controller/applications" className="btn-outline py-1 px-3 text-[10px] rounded-lg inline-flex">
+                         Review File
+                       </Link>
                     </td>
                   </tr>
                 ))}
