@@ -10,9 +10,16 @@ import { getLiveAppUrl } from '../lib/liveAppUrl';
 
 function formatOtpError(e: any) {
   const msg = String(e?.message || '');
-  if (msg.toLowerCase().includes('signups not allowed')) return 'Email OTP is not available yet. Please try again in a moment.';
-  if (msg.toLowerCase().includes('expired')) return 'OTP expired. Please resend and try again.';
-  if (msg.toLowerCase().includes('invalid')) return 'Invalid OTP. Please try again.';
+  const lower = msg.toLowerCase();
+  if (lower.includes('signups not allowed')) return 'Email OTP is not available yet. Please try again in a moment.';
+  if (lower.includes('smtp') && (lower.includes('not configured') || lower.includes('not set') || lower.includes('server'))) {
+    return 'Email OTP server is not configured. Set SMTP in Supabase Auth (SMTP settings) and try again.';
+  }
+  if (lower.includes('not_found') || lower.includes('404')) {
+    return 'Email OTP endpoint is not reachable. Redeploy to Vercel and confirm `/api/*` functions are enabled.';
+  }
+  if (lower.includes('expired')) return 'OTP expired. Please resend and try again.';
+  if (lower.includes('invalid') || lower.includes('token')) return 'Invalid OTP. Please try again.';
   return msg || 'Email verification failed. Please try again.';
 }
 

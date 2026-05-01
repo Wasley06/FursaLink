@@ -256,14 +256,14 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[100svh] flex items-start sm:items-center justify-center bg-sky p-4 sm:p-6 overflow-y-auto relative font-sans">
+    <div className="min-h-[100svh] flex items-center justify-center bg-sky p-4 sm:p-6 overflow-y-auto relative font-sans">
       <div className="absolute inset-0 bg-glass-radial pointer-events-none" />
       <motion.div
         initial={{ opacity: 0, scale: 0.98, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="max-w-lg w-full glass-card overflow-hidden"
+        className="max-w-xl w-full glass-card overflow-hidden"
       >
-        <div className="p-8 sm:p-10 text-center relative">
+        <div className="p-7 sm:p-9 text-center relative">
           <div className="mx-auto w-16 h-16 rounded-2xl bg-white/40 border border-white/50 backdrop-blur-md flex items-center justify-center overflow-hidden shadow-sm mb-5">
             <img src="/brand/logo.png" className="w-14 h-14 object-contain" alt="FursaLink Zanzibar logo" />
           </div>
@@ -275,7 +275,7 @@ export default function Login() {
           <p className="text-muted text-xs font-bold tracking-widest uppercase mt-2">FursaLink Zanzibar</p>
         </div>
 
-        <div className="px-8 sm:px-10 pb-4">
+        <div className="px-7 sm:px-9 pb-3">
           <div className="flex flex-wrap gap-2 rounded-2xl bg-white/30 border border-white/50 backdrop-blur-md p-2">
             {[
               { key: 'candidate', label: t('role.candidate') },
@@ -309,7 +309,7 @@ export default function Login() {
           </p>
         </div>
 
-        <div className="p-8 sm:p-10 pt-6">
+        <div className="p-7 sm:p-9 pt-5">
           {error && (
             <div className="mb-8 p-4 bg-danger/10 border border-danger/20 text-danger rounded-xl flex items-center gap-3">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />

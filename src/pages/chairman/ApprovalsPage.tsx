@@ -10,6 +10,7 @@ import { Modal } from '../../components/Modal';
 import type { UserProfile } from '../../types';
 import { cn } from '../../lib/utils';
 import { getSignedDownloadUrl } from '../../lib/uploads';
+import { getLiveAppUrl } from '../../lib/liveAppUrl';
 
 type BulkSize = 50 | 100 | 150 | 250;
 
@@ -18,18 +19,6 @@ function escapeCsvCell(v: any) {
   const needs = /[",\n]/.test(s);
   const out = s.replace(/"/g, '""');
   return needs ? `"${out}"` : out;
-}
-
-function downloadTextFile(filename: string, content: string) {
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export default function ChairmanApprovalsPage() {
@@ -218,16 +207,10 @@ export default function ChairmanApprovalsPage() {
     }
   };
 
-  const downloadCsv = () => {
-    const cols: Array<keyof UserProfile> = ['candidateIndex', 'fullName', 'phoneNumber', 'district', 'ward', 'dob', 'education', 'occupation', 'address'];
-    const header = cols.join(',');
-    const rows = filtered.map((c) => cols.map((k) => escapeCsvCell((c as any)[k])).join(','));
-    downloadTextFile(`candidates_${district}_${ward}.csv`, [header, ...rows].join('\n'));
-  };
-
   const printList = () => {
     const w = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
     if (!w) return;
+    const brandLogo = `${getLiveAppUrl()}/brand/logo.png`;
     const rows = filtered
       .slice(0, 500)
       .map(
@@ -243,8 +226,23 @@ export default function ChairmanApprovalsPage() {
     w.document.write(`
       <html><head><title>Candidate Profiles</title>
       <meta charset="utf-8" />
-      <style>body{font-family:system-ui,Segoe UI,Arial;padding:20px} h1{margin:0 0 14px} table{width:100%;border-collapse:collapse;font-size:12px}</style>
+      <style>
+        body{font-family:system-ui,Segoe UI,Arial;padding:20px}
+        .brand{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+        .brand img{width:40px;height:40px;object-fit:contain;border-radius:12px;border:1px solid #e5e7eb;background:#fff}
+        .brand .t{font-weight:900;letter-spacing:.02em;color:#083B66}
+        .sub{color:#64748b;font-size:12px;margin-top:2px}
+        h1{margin:0 0 10px}
+        table{width:100%;border-collapse:collapse;font-size:12px}
+      </style>
       </head><body>
+        <div class="brand">
+          <img src="${brandLogo}" alt="FursaLink" />
+          <div>
+            <div class="t">FursaLink</div>
+            <div class="sub">Candidate Profiles Export</div>
+          </div>
+        </div>
         <h1>Candidate Profiles</h1>
         <div style="margin-bottom:12px;color:#64748b;font-size:12px;">District: ${escapeCsvCell(district)} • Ward: ${escapeCsvCell(ward)} • Total: ${filtered.length}</div>
         <table>
@@ -319,13 +317,10 @@ export default function ChairmanApprovalsPage() {
     window.open(fileUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const downloadJson = (c: UserProfile) => {
-    downloadTextFile(`${c.candidateIndex || c.id}.json`, JSON.stringify(c, null, 2));
-  };
-
   const printCandidate = (c: UserProfile) => {
     const w = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
     if (!w) return;
+    const brandLogo = `${getLiveAppUrl()}/brand/logo.png`;
     w.document.write(`
       <html><head><title>${escapeCsvCell(c.fullName)}</title><meta charset="utf-8" />
       <style>
@@ -339,7 +334,7 @@ export default function ChairmanApprovalsPage() {
       </style>
       </head><body>
         <div class="brand">
-          <img src="/brand/logo.png" alt="FursaLink" />
+          <img src="${brandLogo}" alt="FursaLink" />
           <div>
             <div class="t">FursaLink</div>
             <div class="meta" style="margin:2px 0 0;">Candidate Profile Export</div>
@@ -447,8 +442,8 @@ export default function ChairmanApprovalsPage() {
             <button type="button" className="btn-outline py-2 px-3 text-xs" disabled={filtered.length === 0} onClick={printList} title="Print filtered list">
               <Printer className="w-4 h-4 mr-2" /> Print
             </button>
-            <button type="button" className="btn-outline py-2 px-3 text-xs" disabled={filtered.length === 0} onClick={downloadCsv} title="Download filtered list as CSV">
-              <Download className="w-4 h-4 mr-2" /> Download
+            <button type="button" className="btn-outline py-2 px-3 text-xs" disabled={filtered.length === 0} onClick={printList} title="Export filtered list as PDF (print)">
+              <Download className="w-4 h-4 mr-2" /> Export PDF
             </button>
             <button
               type="button"
