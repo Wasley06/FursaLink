@@ -63,7 +63,7 @@ export async function processOfflineActionsOnce(): Promise<{ processed: number; 
         });
         if (!res.ok) throw new Error(`push_failed:${res.status}`);
       } else if (a.type === 'admin_push_many') {
-        const res = await fetch(`${getLiveAppUrl()}/api/administrator/push-many`, {
+        const res = await fetch(`${getLiveAppUrl()}/api/administrator/push`, {
           method: 'POST',
           headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
           body: JSON.stringify({ candidateIds: a.candidateIds, chairmanRemarks: a.chairmanRemarks }),

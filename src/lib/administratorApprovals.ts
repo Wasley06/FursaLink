@@ -161,7 +161,7 @@ export async function pushManyToAdministratorQueue(input: {
   try {
     if (auth.currentUser) {
       const token = await auth.currentUser.getIdToken();
-      const res = await fetch(`${getLiveAppUrl()}/api/administrator/push-many`, {
+      const res = await fetch(`${getLiveAppUrl()}/api/administrator/push`, {
         method: 'POST',
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
         body: JSON.stringify({ candidateIds: candidates.map((c) => c.id), chairmanRemarks: input.chairmanRemarks || '' }),
