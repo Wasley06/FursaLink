@@ -62,6 +62,9 @@ export default function ChairmanApprovalsPage() {
   const [banConfirmOpen, setBanConfirmOpen] = useState(false);
   const [activeCandidate, setActiveCandidate] = useState<UserProfile | null>(null);
   const [banReason, setBanReason] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewCandidate, setPreviewCandidate] = useState<UserProfile | null>(null);
+  const [previewError, setPreviewError] = useState('');
 
   const ageForDob = (dob?: string) => {
     if (!dob) return null;
@@ -306,6 +309,34 @@ export default function ChairmanApprovalsPage() {
     window.open(fileUrl, '_blank', 'noopener,noreferrer');
   };
 
+  const downloadJson = (c: UserProfile) => {
+    downloadTextFile(`${c.candidateIndex || c.id}.json`, JSON.stringify(c, null, 2));
+  };
+
+  const printCandidate = (c: UserProfile) => {
+    const w = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
+    if (!w) return;
+    w.document.write(`
+      <html><head><title>${escapeCsvCell(c.fullName)}</title><meta charset="utf-8" />
+      <style>body{font-family:system-ui,Segoe UI,Arial;padding:20px} h1{margin:0 0 14px}</style>
+      </head><body>
+        <h1>${escapeCsvCell(c.fullName || '')}</h1>
+        <div style="color:#64748b;font-size:12px;margin-bottom:14px;">${escapeCsvCell(c.candidateIndex || '')} • ${escapeCsvCell(c.phoneNumber || '')}</div>
+        <pre style="white-space:pre-wrap;font-size:12px;background:#f8fafc;border:1px solid #e5e7eb;padding:12px;border-radius:12px;">${escapeCsvCell(
+          JSON.stringify(c, null, 2),
+        )}</pre>
+        <script>window.onload = () => window.print();</script>
+      </body></html>
+    `);
+    w.document.close();
+  };
+
+  const openPreview = (c: UserProfile) => {
+    setPreviewError('');
+    setPreviewCandidate(c);
+    setPreviewOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="premium-card">
@@ -427,14 +458,16 @@ export default function ChairmanApprovalsPage() {
                   <th className="px-4 py-3 w-10">
                     <input type="checkbox" className="checkbox" checked={allOnPageSelected} onChange={toggleAllOnPage} aria-label="Select all filtered" />
                   </th>
-                  <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-28 whitespace-nowrap">Index</th>
-                  <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] min-w-[220px]">Candidate</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-40 whitespace-nowrap">Reference</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-20 whitespace-nowrap">Profile</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] min-w-[220px]">Name</th>
                   <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-44 leading-tight whitespace-nowrap">
                     <span className="block">District</span>
                     <span className="block opacity-70">Ward</span>
                   </th>
                   <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] hidden xl:table-cell w-28 whitespace-nowrap">DOB</th>
                   <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-52 whitespace-nowrap">Occupation</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-56 whitespace-nowrap">Documents</th>
                   <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-28 whitespace-nowrap">Admin</th>
                   <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] text-right w-56 whitespace-nowrap">Actions</th>
                 </tr>
@@ -446,7 +479,7 @@ export default function ChairmanApprovalsPage() {
                   const statusLabel = status === 'not_pushed' ? 'Not pushed' : status;
                   return (
                     <tr key={c.id} className="hover:bg-sky/20 transition-colors">
-                      <td className="px-4 py-4 align-top">
+                      <td className="px-4 py-3 align-top">
                         <input
                           type="checkbox"
                           className="checkbox"
@@ -455,18 +488,35 @@ export default function ChairmanApprovalsPage() {
                           aria-label={`Select ${c.fullName || c.id}`}
                         />
                       </td>
-                      <td className="px-4 py-4 align-top text-xs font-extrabold text-primary">{c.candidateIndex || '-'}</td>
-                      <td className="px-4 py-4 align-top">
-                        <div className="font-extrabold text-navy leading-tight">{c.fullName || '-'}</div>
-                        <div className="text-xs text-muted font-medium mt-1">{c.phoneNumber || '-'}</div>
+                      <td className="px-4 py-3 align-top text-xs font-extrabold text-primary whitespace-nowrap">{c.candidateIndex || '-'}</td>
+                      <td className="px-4 py-3 align-top">
+                        <div className="w-10 h-10 rounded-2xl bg-white/60 border border-white/50 flex items-center justify-center overflow-hidden">
+                          {c.photoUrl ? <img src={c.photoUrl} alt="" className="w-full h-full object-cover" /> : <span className="text-xs font-black text-primary">C</span>}
+                        </div>
                       </td>
-                      <td className="px-4 py-4 align-top text-xs text-muted font-medium">
+                      <td className="px-4 py-3 align-top">
+                        <div className="font-extrabold text-navy leading-tight truncate max-w-[260px]">{c.fullName || '-'}</div>
+                        <div className="text-[11px] text-muted font-medium truncate max-w-[260px]">{c.phoneNumber || '-'}</div>
+                      </td>
+                      <td className="px-4 py-3 align-top text-[11px] text-muted font-medium">
                         <div className="font-bold text-navy/80">{c.district || '-'}</div>
                         <div>{c.ward || '-'}</div>
                       </td>
-                      <td className="px-4 py-4 align-top hidden xl:table-cell text-xs text-muted font-medium whitespace-nowrap">{c.dob || '-'}</td>
-                      <td className="px-4 py-4 align-top text-xs text-muted font-medium">{c.occupation || '-'}</td>
-                      <td className="px-4 py-4 align-top">
+                      <td className="px-4 py-3 align-top hidden xl:table-cell text-[11px] text-muted font-medium whitespace-nowrap">{c.dob || '-'}</td>
+                      <td className="px-4 py-3 align-top text-[11px] text-muted font-medium">{c.occupation || '-'}</td>
+                      <td className="px-4 py-3 align-top">
+                        <div className="flex flex-wrap gap-2">
+                          {(c.cvUrl || (c as any).cvRef) ? <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald/10 text-emerald uppercase tracking-wider">CV</span> : null}
+                          {(c.documentsUrl || (c as any).documentsRef) ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-primary/10 text-primary uppercase tracking-wider">Docs</span>
+                          ) : null}
+                          {(c.photoUrl || (c as any).photoRef) ? <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-gold/15 text-gold uppercase tracking-wider">Photo</span> : null}
+                          {!(c.cvUrl || (c as any).cvRef || c.documentsUrl || (c as any).documentsRef || c.photoUrl || (c as any).photoRef) ? (
+                            <span className="text-[11px] text-muted font-medium">—</span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top">
                         <span
                           className={cn(
                             'status-pill',
@@ -482,46 +532,50 @@ export default function ChairmanApprovalsPage() {
                           {statusLabel}
                         </span>
                       </td>
-                      <td className="px-4 py-4 align-top text-right">
-                        <div className="flex items-center justify-end gap-2 flex-wrap">
-                          <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={() => openPush(c)}>
-                            <FileUp className="w-4 h-4 mr-2" /> Push
+                      <td className="px-4 py-3 align-top text-right">
+                        <div className="inline-flex items-center justify-end gap-2 rounded-2xl border border-white/50 bg-white/30 backdrop-blur-md px-2 py-1.5">
+                          <button type="button" className="btn-outline p-2 rounded-xl border-white/50 bg-white/30" onClick={() => openPush(c)} title="Push to Administrator" aria-label="Push to Administrator">
+                            <FileUp className="w-4 h-4" />
                           </button>
-                          <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={() => downloadCandidateFile(c, 'cv')}>
-                            <Download className="w-4 h-4 mr-2" /> CV
+                          <button type="button" className="btn-outline p-2 rounded-xl border-white/50 bg-white/30" onClick={() => openPreview(c)} title="Preview profile" aria-label="Preview profile">
+                            <Eye className="w-4 h-4" />
                           </button>
-                          <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={() => downloadCandidateFile(c, 'documents')}>
-                            <Download className="w-4 h-4 mr-2" /> Docs
+                          <button type="button" className="btn-outline p-2 rounded-xl border-white/50 bg-white/30" onClick={() => downloadCandidateFile(c, 'cv')} title="Download/Open CV" aria-label="Download/Open CV">
+                            <Download className="w-4 h-4" />
                           </button>
-                          <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={() => window.open(`/candidate/${c.id}`, '_blank')} title="Preview profile (opens new tab)">
-                            <Eye className="w-4 h-4 mr-2" /> Preview
+                          <button type="button" className="btn-outline p-2 rounded-xl border-white/50 bg-white/30" onClick={() => downloadCandidateFile(c, 'documents')} title="Download/Open Documents" aria-label="Download/Open Documents">
+                            <Download className="w-4 h-4" />
                           </button>
                           {(c as any).banned ? (
-                            <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={() => doUnban(c)}>
-                              <ShieldBan className="w-4 h-4 mr-2" /> Unban
+                            <button type="button" className="btn-outline p-2 rounded-xl border-white/50 bg-white/30" onClick={() => doUnban(c)} title="Unban candidate" aria-label="Unban candidate">
+                              <ShieldBan className="w-4 h-4" />
                             </button>
                           ) : (
                             <button
                               type="button"
-                              className="btn-outline py-2 px-3 text-xs"
+                              className="btn-outline p-2 rounded-xl border-danger/20 bg-danger/10 text-danger hover:bg-danger/15"
                               onClick={() => {
                                 setActiveCandidate(c);
                                 setBanReason('');
                                 setBanConfirmOpen(true);
                               }}
+                              title="Ban candidate"
+                              aria-label="Ban candidate"
                             >
-                              <Ban className="w-4 h-4 mr-2 text-danger" /> Ban
+                              <Ban className="w-4 h-4" />
                             </button>
                           )}
                           <button
                             type="button"
-                            className="btn-outline py-2 px-3 text-xs"
+                            className="btn-outline p-2 rounded-xl border-danger/20 bg-danger/10 text-danger hover:bg-danger/15"
                             onClick={() => {
                               setActiveCandidate(c);
                               setDeleteConfirmOpen(true);
                             }}
+                            title="Delete candidate"
+                            aria-label="Delete candidate"
                           >
-                            <Trash2 className="w-4 h-4 mr-2 text-danger" /> Delete
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -533,6 +587,135 @@ export default function ChairmanApprovalsPage() {
           </div>
         )}
       </div>
+
+      <Modal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        size="xl"
+        title={`Profile Preview — ${previewCandidate?.fullName || ''}`}
+        footer={
+          <div className="flex flex-col lg:flex-row gap-3 lg:justify-between lg:items-center">
+            <div className="text-xs text-muted font-bold uppercase tracking-widest">
+              {previewCandidate?.candidateIndex || previewCandidate?.id || ''}
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+              {previewCandidate ? (
+                <>
+                  <button type="button" className="btn-outline py-2.5 px-4 text-xs" onClick={() => downloadJson(previewCandidate)}>
+                    <Download className="w-4 h-4 mr-2" /> Export profile
+                  </button>
+                  <button type="button" className="btn-outline py-2.5 px-4 text-xs" onClick={() => printCandidate(previewCandidate)}>
+                    <Printer className="w-4 h-4 mr-2" /> Print profile
+                  </button>
+                  <button type="button" className="btn-primary py-2.5 px-4 text-xs" onClick={() => setPreviewOpen(false)}>
+                    Close profile
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="btn-primary py-2.5 px-4 text-xs" onClick={() => setPreviewOpen(false)}>
+                  Close
+                </button>
+              )}
+            </div>
+          </div>
+        }
+      >
+        {previewError ? <div className="alert-error">{previewError}</div> : null}
+        {previewCandidate ? (
+          (() => {
+            const appr = adminApprovals[previewCandidate.id] || null;
+            const status: string = appr?.status || 'not_pushed';
+            const docsCount = [
+              previewCandidate.photoUrl || (previewCandidate as any).photoRef ? 1 : 0,
+              previewCandidate.cvUrl || (previewCandidate as any).cvRef ? 1 : 0,
+              (previewCandidate as any).documentsUrl || (previewCandidate as any).documentsRef ? 1 : 0,
+            ].reduce((a, b) => a + b, 0);
+
+            const contactEmail = String((previewCandidate as any).contactEmail || (previewCandidate as any).email || '').trim();
+            const age = ageForDob(previewCandidate.dob) ?? null;
+
+            return (
+              <div className="space-y-6">
+                <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                  <div className="flex items-center gap-5">
+                    <div className="w-28 h-28 rounded-3xl bg-white/60 border-4 border-gold/40 overflow-hidden flex items-center justify-center">
+                      {previewCandidate.photoUrl ? (
+                        <img src={previewCandidate.photoUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-3xl font-black text-primary">C</span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-3xl font-extrabold text-navy tracking-tight truncate">{previewCandidate.fullName || '-'}</div>
+                      <div className="text-sm text-muted font-bold uppercase tracking-widest mt-1">
+                        {(previewCandidate.occupation || 'Candidate').toString()} • {age != null ? `${age} years` : '—'}
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        <span className={cn('status-pill', status === 'approved' ? 'status-approved' : status === 'rejected' ? 'status-rejected' : status === 'pending' ? 'status-pending' : 'bg-slate-100 text-slate-700')}>
+                          {status === 'not_pushed' ? 'Not pushed' : status}
+                        </span>
+                        <span className="status-pill bg-gold/15 text-gold">{`Docs: ${docsCount}/3`}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {[
+                      { k: 'Reference ID', v: previewCandidate.candidateIndex || previewCandidate.id },
+                      { k: 'Email', v: contactEmail || '—' },
+                      { k: 'Phone', v: previewCandidate.phoneNumber || '—' },
+                      { k: 'DOB / Age', v: previewCandidate.dob ? `${previewCandidate.dob}${age != null ? ` (${age})` : ''}` : '—' },
+                      { k: 'Address', v: previewCandidate.address || '—' },
+                      { k: 'District / Ward', v: `${previewCandidate.district || '—'} / ${previewCandidate.ward || '—'}` },
+                    ].map((it) => (
+                      <div key={it.k} className="rounded-2xl border border-white/50 bg-white/35 backdrop-blur-md p-4">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-muted">{it.k}</div>
+                        <div className="mt-1 text-sm font-extrabold text-navy break-words">{it.v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="premium-card">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-3">Candidate Notes</div>
+                    <div className="rounded-2xl border border-gold/20 bg-gold/10 p-4 text-sm text-navy/90 min-h-[110px]">
+                      {(appr?.chairmanRemarks || '').trim() || 'No notes added yet.'}
+                    </div>
+                  </div>
+
+                  <div className="premium-card">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-3">Documentation</div>
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={() => downloadCandidateFile(previewCandidate, 'cv')} disabled={!previewCandidate.cvUrl && !(previewCandidate as any).cvRef}>
+                        <Download className="w-4 h-4 mr-2" /> CV
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-outline py-2 px-3 text-xs"
+                        onClick={() => downloadCandidateFile(previewCandidate, 'documents')}
+                        disabled={!(previewCandidate as any).documentsUrl && !(previewCandidate as any).documentsRef}
+                      >
+                        <Download className="w-4 h-4 mr-2" /> Docs
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-outline py-2 px-3 text-xs"
+                        onClick={() => downloadCandidateFile(previewCandidate, 'photo')}
+                        disabled={!previewCandidate.photoUrl && !(previewCandidate as any).photoRef}
+                      >
+                        <Download className="w-4 h-4 mr-2" /> Photo
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()
+        ) : (
+          <div className="text-sm text-muted italic">No candidate selected.</div>
+        )}
+      </Modal>
 
       <Modal
         open={bulkOpen}

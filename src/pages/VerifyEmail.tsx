@@ -75,8 +75,13 @@ export default function VerifyEmail() {
         const ct = ensureRes.headers.get('content-type') || '';
         const ensureBody = ct.includes('application/json') ? await ensureRes.json().catch(() => ({})) : {};
         if (!ensureRes.ok) {
-          const detail = String(ensureBody?.detail || ensureBody?.error || 'Email OTP server is not configured.');
-          throw new Error(detail);
+          const detail =
+            ct.includes('application/json')
+              ? String(ensureBody?.detail || ensureBody?.error || '')
+              : ensureRes.status === 404
+                ? 'Email OTP server endpoint is missing (404). Ensure Vercel routes allow `/api/*` functions.'
+                : '';
+          throw new Error(detail || 'Email OTP server is not configured.');
         }
       } catch (e: any) {
         setError(e?.message || 'Email OTP server is not configured.');
