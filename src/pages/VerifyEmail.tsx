@@ -15,8 +15,12 @@ function formatOtpError(e: any) {
   if (lower.includes('smtp') && (lower.includes('not configured') || lower.includes('not set') || lower.includes('server'))) {
     return 'Email OTP server is not configured. Set SMTP in Supabase Auth (SMTP settings) and try again.';
   }
-  if (lower.includes('not_found') || lower.includes('404')) {
-    return 'Email OTP endpoint is not reachable. Redeploy to Vercel and confirm `/api/*` functions are enabled.';
+  if (lower.includes('not_found') || lower.includes('not found') || lower.includes('404')) {
+    return [
+      'Email OTP endpoint returned NOT_FOUND.',
+      'Confirm `VITE_SUPABASE_URL` is exactly `https://<project>.supabase.co` (no `/auth/v1`).',
+      'Then hard refresh / restart the desktop app to load the latest build.',
+    ].join(' ');
   }
   if (lower.includes('expired')) return 'OTP expired. Please resend and try again.';
   if (lower.includes('invalid') || lower.includes('token')) return 'Invalid OTP. Please try again.';

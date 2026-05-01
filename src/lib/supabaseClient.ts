@@ -7,10 +7,25 @@ export type SupabaseClientConfig = {
   privateBucket: string;
 };
 
+function normalizeSupabaseUrl(raw: string) {
+  const trimmed = String(raw || '').trim();
+  if (!trimmed) return '';
+  const noSlash = trimmed.replace(/\/+$/, '');
+  return noSlash;
+}
+
+function isLikelyValidSupabaseProjectUrl(url: string) {
+  // Expected: https://<ref>.supabase.co
+  return /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url);
+}
+
 export function getSupabaseClientConfig(): SupabaseClientConfig | null {
-  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const urlRaw = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+  const url = urlRaw ? normalizeSupabaseUrl(urlRaw) : '';
   if (!url || !anonKey) return null;
+  // Common misconfig: pasting https://<ref>.supabase.co/auth/v1 or similar.
+  if (!isLikelyValidSupabaseProjectUrl(url)) return null;
   return {
     url,
     anonKey,
@@ -30,4 +45,3 @@ export function getSupabaseClient(): SupabaseClient | null {
   }
   return cached;
 }
-
