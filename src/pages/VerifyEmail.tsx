@@ -4,7 +4,7 @@ import { AlertCircle, KeyRound, Loader2, Mail } from 'lucide-react';
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { getSupabaseClient } from '../lib/supabaseClient';
+import { getSupabaseClient, getSupabaseClientConfig } from '../lib/supabaseClient';
 import { OtpCodeInput } from '../components/OtpCodeInput';
 import { getLiveAppUrl } from '../lib/liveAppUrl';
 
@@ -39,6 +39,7 @@ export default function VerifyEmail() {
   const [code, setCode] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const [sent, setSent] = useState(false);
+  const [diag, setDiag] = useState<string>('');
 
   const email = useMemo(() => {
     const qp = new URLSearchParams(location.search);
@@ -58,6 +59,7 @@ export default function VerifyEmail() {
   const sendOtp = async () => {
     setError('');
     setInfo('');
+    setDiag('');
     if (!auth.currentUser) {
       setError('Not signed in.');
       return;
@@ -113,6 +115,35 @@ export default function VerifyEmail() {
       setError(formatOtpError(e));
     } finally {
       setSending(false);
+    }
+  };
+
+  const runDiagnostics = async () => {
+    setDiag('');
+    const cfg = getSupabaseClientConfig();
+    const url = cfg?.url || '';
+    const keyPrefix = cfg?.anonKey ? `${cfg.anonKey.slice(0, 12)}…` : '';
+    try {
+      if (!url) {
+        setDiag('Supabase config missing: VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not found at runtime.');
+        return;
+      }
+      const r = await fetch(`${url}/auth/v1/settings`, {
+        headers: { apikey: cfg?.anonKey || '' },
+      });
+      const txt = await r.text().catch(() => '');
+      setDiag(
+        [
+          `VITE_SUPABASE_URL: ${url}`,
+          `VITE_SUPABASE_ANON_KEY: ${keyPrefix || '(missing)'}`,
+          `GET /auth/v1/settings: ${r.status}`,
+          txt ? `Body: ${txt.slice(0, 180)}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      );
+    } catch (e: any) {
+      setDiag([`VITE_SUPABASE_URL: ${url || '(missing)'}`, `Error: ${String(e?.message || e)}`].join('\n'));
     }
   };
 
@@ -185,6 +216,18 @@ export default function VerifyEmail() {
               <p className="text-[11px] font-bold uppercase tracking-tight">{error}</p>
             </div>
           )}
+          {error && error.toLowerCase().includes('not_found') ? (
+            <div className="mt-3">
+              <button type="button" className="btn-outline w-full py-2.5 text-xs" onClick={runDiagnostics}>
+                Run diagnostics
+              </button>
+              {diag ? (
+                <pre className="mt-3 rounded-2xl border border-white/40 bg-white/30 backdrop-blur-md p-4 text-[11px] text-navy whitespace-pre-wrap">
+                  {diag}
+                </pre>
+              ) : null}
+            </div>
+          ) : null}
           {info && (
             <div className="mt-6 p-4 bg-emerald/10 border border-emerald/20 text-emerald rounded-xl flex items-center gap-3">
               <Mail className="w-4 h-4 flex-shrink-0" />

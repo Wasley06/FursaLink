@@ -2,6 +2,8 @@ import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc, writeBatch
 import type { StoredFileRef, UserProfile } from '../types';
 import { auth, db } from './firebase';
 import { sendNotification } from './notify';
+import { getLiveAppUrl } from './liveAppUrl';
+import { enqueueOfflineAction } from './offlineActions';
 
 export type AdministratorApprovalStatus = 'pending' | 'approved' | 'rejected';
 
@@ -58,6 +60,31 @@ export async function pushToAdministratorQueue(input: {
   administratorIds?: string[];
 }) {
   const actorId = auth.currentUser?.uid || input.chairmanId;
+  // Prefer server-side push (Firebase Admin) to avoid Firestore rules edge-cases.
+  try {
+    if (auth.currentUser) {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch(`${getLiveAppUrl()}/api/administrator/push`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ candidateId: input.candidate.id, chairmanRemarks: input.chairmanRemarks || '' }),
+      });
+      if (res.ok) {
+        for (const adminId of input.administratorIds || []) {
+          await sendNotification({
+            recipientId: adminId,
+            title: 'New profile in approval queue',
+            message: `${input.candidate.fullName} (${input.candidate.candidateIndex || input.candidate.phoneNumber})`,
+            targetPath: '/administrator/approvals',
+          });
+        }
+        return;
+      }
+    }
+  } catch {
+    enqueueOfflineAction({ type: 'admin_push_one', candidateId: input.candidate.id, chairmanRemarks: input.chairmanRemarks || '' });
+    // fall back to direct Firestore write below
+  }
   const approvalId = input.candidate.id;
   const ref = doc(db, 'administratorApprovals', approvalId);
 
@@ -129,6 +156,32 @@ export async function pushManyToAdministratorQueue(input: {
   const actorId = auth.currentUser?.uid || input.chairmanId;
   const candidates = input.candidates.filter((c) => !!c?.id);
   if (candidates.length === 0) return;
+
+  // Prefer server-side bulk push (Firebase Admin) to avoid Firestore rules edge-cases.
+  try {
+    if (auth.currentUser) {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch(`${getLiveAppUrl()}/api/administrator/push-many`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ candidateIds: candidates.map((c) => c.id), chairmanRemarks: input.chairmanRemarks || '' }),
+      });
+      if (res.ok) {
+        for (const adminId of input.administratorIds || []) {
+          await sendNotification({
+            recipientId: adminId,
+            title: 'New profiles pushed',
+            message: `${candidates.length} candidate profiles added to the approval queue.`,
+            targetPath: '/administrator/approvals',
+          });
+        }
+        return;
+      }
+    }
+  } catch {
+    enqueueOfflineAction({ type: 'admin_push_many', candidateIds: candidates.map((c) => c.id), chairmanRemarks: input.chairmanRemarks || '' });
+    // fall back to direct Firestore writes below
+  }
 
   // Each candidate: approvals doc + event doc => 2 writes. Keep under 450 writes per commit for safety.
   const chunkSize = 200;

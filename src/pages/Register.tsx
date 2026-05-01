@@ -14,6 +14,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { buildCandidateIndex } from '../lib/candidateIndex';
 import { uploadUserFile } from '../lib/uploads';
 import { sendNotification } from '../lib/notify';
+import { ensureCandidateReference } from '../lib/candidateReference';
 
 export default function Register() {
   const [step, setStep] = useState(1);
@@ -135,6 +136,14 @@ export default function Register() {
         photoRef: up.ref,
         updatedAt: serverTimestamp(),
       } as any);
+
+      // Allocate the official reference format (FZ-DIST-WARD-00001) via server-side counter.
+      // Best-effort; does not block registration if the device is offline.
+      try {
+        await ensureCandidateReference();
+      } catch {
+        // ignore
+      }
 
       // Notify district controller(s) so the new candidate appears instantly in their workflow.
       try {

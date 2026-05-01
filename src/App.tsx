@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
@@ -6,6 +6,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { I18nProvider } from './contexts/I18nContext';
 import { SystemConfigProvider, useSystemConfig } from './contexts/SystemConfigContext';
 import { NotificationsProvider } from './contexts/NotificationsContext';
+import { setupOfflineActionSync } from './lib/offlineActions';
 
 // Lazy load pages
 const Landing = React.lazy(() => import('./pages/Landing'));
@@ -97,6 +98,7 @@ function RoleRedirect() {
 }
 
 export default function App() {
+  useEffect(() => setupOfflineActionSync(), []);
   return (
     <AuthProvider>
       <SystemConfigProvider>

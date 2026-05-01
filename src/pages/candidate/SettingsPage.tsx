@@ -6,6 +6,7 @@ import { DISTRICTS, WARDS, type District } from '../../constants/locations';
 import { db } from '../../lib/firebase';
 import { buildCandidateIndex } from '../../lib/candidateIndex';
 import { getSignedDownloadUrl, uploadUserFile } from '../../lib/uploads';
+import { ensureCandidateReference } from '../../lib/candidateReference';
 
 export default function SettingsPage() {
   const { profile } = useAuth();
@@ -53,6 +54,8 @@ export default function SettingsPage() {
     setSaving(true);
     setError('');
     try {
+      const prevDistrict = String((profile as any)?.district || '');
+      const prevWard = String((profile as any)?.ward || '');
       const fields = Object.values(form).filter((v) => String(v || '').trim().length > 0).length;
       const total = Object.keys(form).length;
       const progress = Math.min(100, Math.round((fields / total) * 100));
@@ -62,6 +65,13 @@ export default function SettingsPage() {
         candidateIndex: buildCandidateIndex({ district: form.district, ward: form.ward, uid: profile.id }),
         updatedAt: serverTimestamp(),
       } as any);
+
+      // If district/ward changed (or candidateIndex not yet official), re-allocate official reference format.
+      if (prevDistrict !== form.district || prevWard !== form.ward) {
+        await ensureCandidateReference();
+      } else if (!String((profile as any)?.candidateIndex || '').startsWith('FZ-')) {
+        await ensureCandidateReference();
+      }
     } catch (e: any) {
       setError(e?.message || 'Failed to save settings.');
     } finally {

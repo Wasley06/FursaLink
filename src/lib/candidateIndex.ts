@@ -11,7 +11,8 @@ function codeify(part: string, len: number) {
 export function buildCandidateIndex(input: { district?: District | string; ward?: string; uid: string }): string {
   const d = codeify(String(input.district || ''), 3);
   const w = codeify(String(input.ward || ''), 3);
-  const u = codeify(input.uid, 6);
-  return `ZNZ-${d}-${w}-${u}`;
+  // Fallback format (official sequence is allocated server-side): FZ-DIST-WARD-00001
+  // Here we use a stable uid-derived suffix so offline registration still has a usable reference.
+  const u = codeify(input.uid, 5);
+  return `FZ-${d}-${w}-${u}`;
 }
-
