@@ -12,7 +12,6 @@ const DeveloperRecoveryPage = React.lazy(() => import('./developer/RecoveryPage'
 
 // Reuse existing "chairman" admin pages for developer full-system control (lazy-loaded to keep login fast).
 const ChairmanApprovalsPage = React.lazy(() => import('./chairman/ApprovalsPage'));
-const ChairmanApplicationApprovalsPage = React.lazy(() => import('./chairman/ApplicationApprovalsPage'));
 const ChairmanAnalyticsPage = React.lazy(() => import('./chairman/AnalyticsPage'));
 const ChairmanJobsPage = React.lazy(() => import('./chairman/JobsPage'));
 const ChairmanEditJobPage = React.lazy(() => import('./chairman/EditJobPage'));
@@ -86,7 +85,6 @@ export default function DeveloperDashboard() {
 
         {/* Full admin surface area (developer has system control) */}
         <Route path="approvals" element={lazy(<ChairmanApprovalsPage />)} />
-        <Route path="application-approvals" element={lazy(<ChairmanApplicationApprovalsPage />)} />
         <Route path="analytics" element={lazy(<ChairmanAnalyticsPage />)} />
         <Route path="jobs" element={lazy(<ChairmanJobsPage />)} />
         <Route path="jobs/:jobId" element={lazy(<ChairmanEditJobPage />)} />

@@ -1,6 +1,7 @@
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import { auth, storage } from './firebase';
 import { getSupabaseClient, getSupabaseClientConfig } from './supabaseClient';
+import { getLiveAppUrl } from './liveAppUrl';
 
 export type StorageProvider = 'firebase' | 'supabase';
 
@@ -26,7 +27,7 @@ export async function uploadUserFile(
   input: {
     uid: string;
     file: File;
-    kind: 'profile' | 'cv' | 'document';
+    kind: 'profile' | 'cv' | 'document' | 'id' | 'certificates' | 'tin' | 'sheha';
     nameHint?: string;
     onProgress?: (pct: number) => void;
   },
@@ -38,7 +39,7 @@ export async function uploadUserFile(
     if (!auth.currentUser) throw new Error('You must be signed in to upload files.');
 
     const token = await auth.currentUser.getIdToken();
-    const res = await fetch('/api/storage/sign-upload', {
+    const res = await fetch(`${getLiveAppUrl()}/api/storage/sign-upload`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -122,7 +123,7 @@ export async function getSignedDownloadUrl(fileRef: StoredFileRef, opts?: { expi
 
   if (!auth.currentUser) throw new Error('You must be signed in to download files.');
   const token = await auth.currentUser.getIdToken();
-  const res = await fetch('/api/storage/sign-download', {
+  const res = await fetch(`${getLiveAppUrl()}/api/storage/sign-download`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

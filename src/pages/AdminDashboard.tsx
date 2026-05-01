@@ -41,7 +41,6 @@ import {
 import { cn } from '../lib/utils';
 import { seedDemoCandidates } from '../lib/seeder';
 import ApprovalsPage from './chairman/ApprovalsPage';
-import ApplicationApprovalsPage from './chairman/ApplicationApprovalsPage';
 import ChairmanUsersPage from './chairman/UsersPage';
 import SecurityPage from './chairman/SecurityPage';
 import AnalyticsPage from './chairman/AnalyticsPage';
@@ -337,7 +336,6 @@ export default function AdminDashboard() {
       <Routes>
         <Route index element={<ExecutiveStats />} />
         <Route path="approvals" element={<ApprovalsPage />} />
-        <Route path="application-approvals" element={<ApplicationApprovalsPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="users" element={<ChairmanUsersPage />} />
         <Route path="candidates" element={<ChairmanCandidatesPage />} />

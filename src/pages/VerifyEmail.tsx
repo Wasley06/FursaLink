@@ -6,6 +6,7 @@ import { auth, db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { getSupabaseClient } from '../lib/supabaseClient';
 import { OtpCodeInput } from '../components/OtpCodeInput';
+import { getLiveAppUrl } from '../lib/liveAppUrl';
 
 function formatOtpError(e: any) {
   const msg = String(e?.message || '');
@@ -68,7 +69,7 @@ export default function VerifyEmail() {
       // This keeps public signups off while still allowing OTP emails for verified candidates.
       try {
         const token = await auth.currentUser.getIdToken();
-        const ensureRes = await fetch('/api/supabase/ensure-auth-user', {
+        const ensureRes = await fetch(`${getLiveAppUrl()}/api/supabase/ensure-auth-user`, {
           method: 'POST',
           headers: { authorization: `Bearer ${token}` },
         });

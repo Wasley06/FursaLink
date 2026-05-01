@@ -34,7 +34,7 @@ export default function ChairmanCandidatesPage() {
   const [ward, setWard] = useState<string>('all');
   const [q, setQ] = useState('');
   const [occupation, setOccupation] = useState<string>('all');
-  const [ageBand, setAgeBand] = useState<'all' | '18-24' | '25-34' | '35-44' | '45+'>('all');
+  const [ageBand, setAgeBand] = useState<'all' | '18-24' | '25-30' | '31-35'>('all');
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -109,9 +109,8 @@ export default function ChairmanCandidatesPage() {
         const age = ageForDob(c.dob);
         if (age == null) return false;
         if (ageBand === '18-24' && (age < 18 || age > 24)) return false;
-        if (ageBand === '25-34' && (age < 25 || age > 34)) return false;
-        if (ageBand === '35-44' && (age < 35 || age > 44)) return false;
-        if (ageBand === '45+' && age < 45) return false;
+        if (ageBand === '25-30' && (age < 25 || age > 30)) return false;
+        if (ageBand === '31-35' && (age < 31 || age > 35)) return false;
       }
       if (!needle) return true;
       return (
@@ -297,11 +296,26 @@ export default function ChairmanCandidatesPage() {
     if (!w) return;
     w.document.write(`
       <html><head><title>${escapeCsvCell(c.fullName)}</title><meta charset="utf-8" />
-      <style>body{font-family:system-ui,Segoe UI,Arial;padding:20px} h1{margin:0 0 14px}</style>
+      <style>
+        body{font-family:system-ui,Segoe UI,Arial;padding:24px}
+        .brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+        .brand img{width:44px;height:44px;object-fit:contain;border-radius:12px;border:1px solid #e5e7eb;background:#fff}
+        .brand .t{font-weight:900;letter-spacing:.02em;color:#083B66}
+        h1{margin:0 0 10px}
+        .meta{color:#64748b;font-size:12px;margin-bottom:14px}
+        pre{white-space:pre-wrap;font-size:12px;background:#f8fafc;border:1px solid #e5e7eb;padding:12px;border-radius:12px}
+      </style>
       </head><body>
+        <div class="brand">
+          <img src="/brand/logo.png" alt="FursaLink" />
+          <div>
+            <div class="t">FursaLink</div>
+            <div class="meta" style="margin:2px 0 0;">Candidate Profile Export</div>
+          </div>
+        </div>
         <h1>${escapeCsvCell(c.fullName || '')}</h1>
-        <div style="color:#64748b;font-size:12px;margin-bottom:14px;">${escapeCsvCell(c.candidateIndex || '')} • ${escapeCsvCell(c.phoneNumber || '')}</div>
-        <pre style="white-space:pre-wrap;font-size:12px;background:#f8fafc;border:1px solid #e5e7eb;padding:12px;border-radius:12px;">${escapeCsvCell(JSON.stringify(c, null, 2))}</pre>
+        <div class="meta">${escapeCsvCell(c.candidateIndex || '')} • ${escapeCsvCell(c.phoneNumber || '')}</div>
+        <pre>${escapeCsvCell(JSON.stringify(c, null, 2))}</pre>
         <script>window.onload = () => window.print();</script>
       </body></html>
     `);
@@ -371,9 +385,8 @@ export default function ChairmanCandidatesPage() {
             <select className="input-field py-2 w-40" value={ageBand} onChange={(e) => setAgeBand(e.target.value as any)}>
               <option value="all">All Ages</option>
               <option value="18-24">18–24</option>
-              <option value="25-34">25–34</option>
-              <option value="35-44">35–44</option>
-              <option value="45+">45+</option>
+              <option value="25-30">25–30</option>
+              <option value="31-35">31–35</option>
             </select>
             <select className="input-field py-2 w-72" value={occupation} onChange={(e) => setOccupation(e.target.value)}>
               <option value="all">All Occupations</option>
@@ -405,6 +418,7 @@ export default function ChairmanCandidatesPage() {
               <table className="w-full text-left">
                 <thead className="bg-sky/50">
                   <tr>
+                    <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-12 whitespace-nowrap">#</th>
                     <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-28 whitespace-nowrap">Index</th>
                     <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] min-w-[240px]">Candidate</th>
                     <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-44 leading-tight whitespace-nowrap">
@@ -419,8 +433,9 @@ export default function ChairmanCandidatesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-sky">
-                  {filtered.slice(0, 500).map((c) => (
+                  {filtered.slice(0, 500).map((c, idx) => (
                     <tr key={c.id} className="hover:bg-sky/20 transition-colors">
+                      <td className="px-4 py-4 text-[11px] font-black text-muted align-top whitespace-nowrap">{idx + 1}.</td>
                       <td className="px-4 py-4 text-[11px] font-black text-navy align-top">{c.candidateIndex || '-'}</td>
                       <td className="px-4 py-4 align-top">
                         <div className="flex items-center gap-3">
@@ -683,4 +698,3 @@ export default function ChairmanCandidatesPage() {
     </div>
   );
 }
-

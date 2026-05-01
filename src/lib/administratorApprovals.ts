@@ -1,6 +1,6 @@
 import { addDoc, collection, doc, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import type { StoredFileRef, UserProfile } from '../types';
-import { db } from './firebase';
+import { auth, db } from './firebase';
 import { sendNotification } from './notify';
 
 export type AdministratorApprovalStatus = 'pending' | 'approved' | 'rejected';
@@ -57,6 +57,7 @@ export async function pushToAdministratorQueue(input: {
   chairmanRemarks?: string;
   administratorIds?: string[];
 }) {
+  const actorId = auth.currentUser?.uid || input.chairmanId;
   const approvalId = input.candidate.id;
   const ref = doc(db, 'administratorApprovals', approvalId);
 
@@ -78,7 +79,7 @@ export async function pushToAdministratorQueue(input: {
     photoRef: input.candidate.photoRef || null,
     cvRef: input.candidate.cvRef || null,
     documentsRef: input.candidate.documentsRef || null,
-    pushedBy: input.chairmanId,
+    pushedBy: actorId,
     pushedAt: serverTimestamp(),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -87,7 +88,7 @@ export async function pushToAdministratorQueue(input: {
   await setDoc(ref, payload as any, { merge: true });
   await setDoc(doc(collection(db, 'administratorApprovalEvents')), {
     approvalId,
-    actorId: input.chairmanId,
+    actorId,
     action: 'push',
     message: input.chairmanRemarks || '',
     createdAt: serverTimestamp(),
@@ -125,6 +126,7 @@ export async function pushManyToAdministratorQueue(input: {
   chairmanRemarks?: string;
   administratorIds?: string[];
 }) {
+  const actorId = auth.currentUser?.uid || input.chairmanId;
   const candidates = input.candidates.filter((c) => !!c?.id);
   if (candidates.length === 0) return;
 
@@ -156,7 +158,7 @@ export async function pushManyToAdministratorQueue(input: {
           photoRef: c.photoRef || null,
           cvRef: c.cvRef || null,
           documentsRef: c.documentsRef || null,
-          pushedBy: input.chairmanId,
+          pushedBy: actorId,
           pushedAt: serverTimestamp(),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -166,7 +168,7 @@ export async function pushManyToAdministratorQueue(input: {
 
       batch.set(doc(collection(db, 'administratorApprovalEvents')), {
         approvalId,
-        actorId: input.chairmanId,
+        actorId,
         action: 'push',
         message: input.chairmanRemarks || '',
         createdAt: serverTimestamp(),

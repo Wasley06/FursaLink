@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
-import { Ban, Download, Eye, FileUp, ListChecks, Printer, ShieldBan, Trash2, Users } from 'lucide-react';
+import { Ban, Download, Eye, FileCheck, FileUp, ListChecks, Printer, ShieldBan, Trash2 } from 'lucide-react';
 import { DISTRICTS, WARDS, type District } from '../../constants/locations';
 import { auth, db } from '../../lib/firebase';
 import { pushManyToAdministratorQueue, pushToAdministratorQueue } from '../../lib/administratorApprovals';
@@ -40,7 +40,7 @@ export default function ChairmanApprovalsPage() {
   const [ward, setWard] = useState<string>('all');
   const [q, setQ] = useState('');
   const [occupation, setOccupation] = useState<string>('all');
-  const [ageBand, setAgeBand] = useState<'all' | '18-24' | '25-34' | '35-44' | '45+'>('all');
+  const [ageBand, setAgeBand] = useState<'all' | '18-24' | '25-30' | '31-35'>('all');
 
   const [adminApprovals, setAdminApprovals] = useState<Record<string, any>>({});
   const [administratorIds, setAdministratorIds] = useState<string[]>([]);
@@ -128,9 +128,8 @@ export default function ChairmanApprovalsPage() {
       if (ageBand !== 'all') {
         const age = ageForDob(c.dob) ?? -1;
         if (ageBand === '18-24' && (age < 18 || age > 24)) return false;
-        if (ageBand === '25-34' && (age < 25 || age > 34)) return false;
-        if (ageBand === '35-44' && (age < 35 || age > 44)) return false;
-        if (ageBand === '45+' && age < 45) return false;
+        if (ageBand === '25-30' && (age < 25 || age > 30)) return false;
+        if (ageBand === '31-35' && (age < 31 || age > 35)) return false;
       }
       return true;
     });
@@ -301,9 +300,20 @@ export default function ChairmanApprovalsPage() {
     } as any);
   };
 
-  const downloadCandidateFile = async (c: UserProfile, kind: 'cv' | 'documents' | 'photo') => {
-    const ref = kind === 'cv' ? c.cvRef : kind === 'documents' ? c.documentsRef : c.photoRef;
-    const url = kind === 'cv' ? c.cvUrl : kind === 'documents' ? c.documentsUrl : c.photoUrl;
+  const downloadCandidateFile = async (c: UserProfile, kind: 'id' | 'cv' | 'certificates' | 'tin' | 'sheha' | 'photo') => {
+    const ref =
+      kind === 'id'
+        ? (c as any).idRef
+        : kind === 'cv'
+          ? (c as any).cvRef
+          : kind === 'certificates'
+            ? (c as any).certificatesRef
+            : kind === 'tin'
+              ? (c as any).tinRef
+              : kind === 'sheha'
+                ? (c as any).shehaLetterRef
+                : (c as any).photoRef;
+    const url = kind === 'photo' ? c.photoUrl : kind === 'cv' ? c.cvUrl : '';
     const fileUrl = ref ? await getSignedDownloadUrl(ref) : url;
     if (!fileUrl) return;
     window.open(fileUrl, '_blank', 'noopener,noreferrer');
@@ -318,13 +328,26 @@ export default function ChairmanApprovalsPage() {
     if (!w) return;
     w.document.write(`
       <html><head><title>${escapeCsvCell(c.fullName)}</title><meta charset="utf-8" />
-      <style>body{font-family:system-ui,Segoe UI,Arial;padding:20px} h1{margin:0 0 14px}</style>
+      <style>
+        body{font-family:system-ui,Segoe UI,Arial;padding:24px}
+        .brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+        .brand img{width:44px;height:44px;object-fit:contain;border-radius:12px;border:1px solid #e5e7eb;background:#fff}
+        .brand .t{font-weight:900;letter-spacing:.02em;color:#083B66}
+        h1{margin:0 0 10px}
+        .meta{color:#64748b;font-size:12px;margin-bottom:14px}
+        pre{white-space:pre-wrap;font-size:12px;background:#f8fafc;border:1px solid #e5e7eb;padding:12px;border-radius:12px}
+      </style>
       </head><body>
+        <div class="brand">
+          <img src="/brand/logo.png" alt="FursaLink" />
+          <div>
+            <div class="t">FursaLink</div>
+            <div class="meta" style="margin:2px 0 0;">Candidate Profile Export</div>
+          </div>
+        </div>
         <h1>${escapeCsvCell(c.fullName || '')}</h1>
-        <div style="color:#64748b;font-size:12px;margin-bottom:14px;">${escapeCsvCell(c.candidateIndex || '')} • ${escapeCsvCell(c.phoneNumber || '')}</div>
-        <pre style="white-space:pre-wrap;font-size:12px;background:#f8fafc;border:1px solid #e5e7eb;padding:12px;border-radius:12px;">${escapeCsvCell(
-          JSON.stringify(c, null, 2),
-        )}</pre>
+        <div class="meta">${escapeCsvCell(c.candidateIndex || '')} • ${escapeCsvCell(c.phoneNumber || '')}</div>
+        <pre>${escapeCsvCell(JSON.stringify(c, null, 2))}</pre>
         <script>window.onload = () => window.print();</script>
       </body></html>
     `);
@@ -341,11 +364,11 @@ export default function ChairmanApprovalsPage() {
     <div className="space-y-6">
       <div className="premium-card">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-sky border border-white/50">
-            <Users className="w-5 h-5 text-primary" />
-          </div>
+            <div className="p-2 rounded-xl bg-sky border border-white/50">
+              <FileCheck className="w-5 h-5 text-primary" />
+            </div>
           <div>
-            <h1 className="text-2xl font-extrabold text-navy">Approvals</h1>
+            <h1 className="text-2xl font-extrabold text-navy">Application Approvals</h1>
             <p className="text-sm text-muted font-medium">Send candidate profiles to administrator for approvals.</p>
           </div>
         </div>
@@ -391,9 +414,8 @@ export default function ChairmanApprovalsPage() {
               <select className="input-field py-2 w-40" value={ageBand} onChange={(e) => setAgeBand(e.target.value as any)}>
                 <option value="all">All Ages</option>
                 <option value="18-24">18-24</option>
-                <option value="25-34">25-34</option>
-                <option value="35-44">35-44</option>
-                <option value="45+">45+</option>
+                <option value="25-30">25-30</option>
+                <option value="31-35">31-35</option>
               </select>
             </div>
 
@@ -458,6 +480,7 @@ export default function ChairmanApprovalsPage() {
                   <th className="px-4 py-3 w-10">
                     <input type="checkbox" className="checkbox" checked={allOnPageSelected} onChange={toggleAllOnPage} aria-label="Select all filtered" />
                   </th>
+                  <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-12 whitespace-nowrap">#</th>
                   <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-40 whitespace-nowrap">Reference</th>
                   <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-20 whitespace-nowrap">Profile</th>
                   <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] min-w-[220px]">Name</th>
@@ -473,7 +496,7 @@ export default function ChairmanApprovalsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-sky">
-                {filtered.slice(0, 500).map((c) => {
+                {filtered.slice(0, 500).map((c, idx) => {
                   const appr = adminApprovals[c.id] || null;
                   const status: string = appr?.status || 'not_pushed';
                   const statusLabel = status === 'not_pushed' ? 'Not pushed' : status;
@@ -488,6 +511,7 @@ export default function ChairmanApprovalsPage() {
                           aria-label={`Select ${c.fullName || c.id}`}
                         />
                       </td>
+                      <td className="px-4 py-3 align-top text-[11px] font-black text-muted whitespace-nowrap">{idx + 1}.</td>
                       <td className="px-4 py-3 align-top text-xs font-extrabold text-primary whitespace-nowrap">{c.candidateIndex || '-'}</td>
                       <td className="px-4 py-3 align-top">
                         <div className="w-10 h-10 rounded-2xl bg-white/60 border border-white/50 flex items-center justify-center overflow-hidden">
@@ -506,12 +530,12 @@ export default function ChairmanApprovalsPage() {
                       <td className="px-4 py-3 align-top text-[11px] text-muted font-medium">{c.occupation || '-'}</td>
                       <td className="px-4 py-3 align-top">
                         <div className="flex flex-wrap gap-2">
-                          {(c.cvUrl || (c as any).cvRef) ? <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald/10 text-emerald uppercase tracking-wider">CV</span> : null}
-                          {(c.documentsUrl || (c as any).documentsRef) ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-primary/10 text-primary uppercase tracking-wider">Docs</span>
-                          ) : null}
-                          {(c.photoUrl || (c as any).photoRef) ? <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-gold/15 text-gold uppercase tracking-wider">Photo</span> : null}
-                          {!(c.cvUrl || (c as any).cvRef || c.documentsUrl || (c as any).documentsRef || c.photoUrl || (c as any).photoRef) ? (
+                          {(c as any).idRef ? <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-primary/10 text-primary uppercase tracking-wider">ID</span> : null}
+                          {(c as any).cvRef || c.cvUrl ? <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald/10 text-emerald uppercase tracking-wider">CV</span> : null}
+                          {(c as any).certificatesRef ? <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-gold/15 text-gold uppercase tracking-wider">Certificates</span> : null}
+                          {(c as any).tinRef ? <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700 uppercase tracking-wider">TIN</span> : null}
+                          {(c as any).shehaLetterRef ? <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-warning/15 text-warning uppercase tracking-wider">Sheha</span> : null}
+                          {!(c as any).idRef && !(c as any).cvRef && !c.cvUrl && !(c as any).certificatesRef && !(c as any).tinRef && !(c as any).shehaLetterRef ? (
                             <span className="text-[11px] text-muted font-medium">—</span>
                           ) : null}
                         </div>
@@ -537,14 +561,8 @@ export default function ChairmanApprovalsPage() {
                           <button type="button" className="btn-outline p-2 rounded-xl border-white/50 bg-white/30" onClick={() => openPush(c)} title="Push to Administrator" aria-label="Push to Administrator">
                             <FileUp className="w-4 h-4" />
                           </button>
-                          <button type="button" className="btn-outline p-2 rounded-xl border-white/50 bg-white/30" onClick={() => openPreview(c)} title="Preview profile" aria-label="Preview profile">
+                          <button type="button" className="btn-outline p-2 rounded-xl border-white/50 bg-white/30" onClick={() => openPreview(c)} title="View profile & documents" aria-label="View profile & documents">
                             <Eye className="w-4 h-4" />
-                          </button>
-                          <button type="button" className="btn-outline p-2 rounded-xl border-white/50 bg-white/30" onClick={() => downloadCandidateFile(c, 'cv')} title="Download/Open CV" aria-label="Download/Open CV">
-                            <Download className="w-4 h-4" />
-                          </button>
-                          <button type="button" className="btn-outline p-2 rounded-xl border-white/50 bg-white/30" onClick={() => downloadCandidateFile(c, 'documents')} title="Download/Open Documents" aria-label="Download/Open Documents">
-                            <Download className="w-4 h-4" />
                           </button>
                           {(c as any).banned ? (
                             <button type="button" className="btn-outline p-2 rounded-xl border-white/50 bg-white/30" onClick={() => doUnban(c)} title="Unban candidate" aria-label="Unban candidate">
@@ -601,8 +619,8 @@ export default function ChairmanApprovalsPage() {
             <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
               {previewCandidate ? (
                 <>
-                  <button type="button" className="btn-outline py-2.5 px-4 text-xs" onClick={() => downloadJson(previewCandidate)}>
-                    <Download className="w-4 h-4 mr-2" /> Export profile
+                  <button type="button" className="btn-outline py-2.5 px-4 text-xs" onClick={() => printCandidate(previewCandidate)}>
+                    <Download className="w-4 h-4 mr-2" /> Export PDF
                   </button>
                   <button type="button" className="btn-outline py-2.5 px-4 text-xs" onClick={() => printCandidate(previewCandidate)}>
                     <Printer className="w-4 h-4 mr-2" /> Print profile
@@ -687,23 +705,32 @@ export default function ChairmanApprovalsPage() {
                   <div className="premium-card">
                     <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-3">Documentation</div>
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={() => downloadCandidateFile(previewCandidate, 'cv')} disabled={!previewCandidate.cvUrl && !(previewCandidate as any).cvRef}>
+                      <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={() => downloadCandidateFile(previewCandidate, 'id')} disabled={!(previewCandidate as any).idRef}>
+                        <Download className="w-4 h-4 mr-2" /> ID
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-outline py-2 px-3 text-xs"
+                        onClick={() => downloadCandidateFile(previewCandidate, 'cv')}
+                        disabled={!previewCandidate.cvUrl && !(previewCandidate as any).cvRef}
+                      >
                         <Download className="w-4 h-4 mr-2" /> CV
                       </button>
                       <button
                         type="button"
                         className="btn-outline py-2 px-3 text-xs"
-                        onClick={() => downloadCandidateFile(previewCandidate, 'documents')}
-                        disabled={!(previewCandidate as any).documentsUrl && !(previewCandidate as any).documentsRef}
+                        onClick={() => downloadCandidateFile(previewCandidate, 'certificates')}
+                        disabled={!(previewCandidate as any).certificatesRef}
                       >
-                        <Download className="w-4 h-4 mr-2" /> Docs
+                        <Download className="w-4 h-4 mr-2" /> Certificates
                       </button>
-                      <button
-                        type="button"
-                        className="btn-outline py-2 px-3 text-xs"
-                        onClick={() => downloadCandidateFile(previewCandidate, 'photo')}
-                        disabled={!previewCandidate.photoUrl && !(previewCandidate as any).photoRef}
-                      >
+                      <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={() => downloadCandidateFile(previewCandidate, 'tin')} disabled={!(previewCandidate as any).tinRef}>
+                        <Download className="w-4 h-4 mr-2" /> TIN
+                      </button>
+                      <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={() => downloadCandidateFile(previewCandidate, 'sheha')} disabled={!(previewCandidate as any).shehaLetterRef}>
+                        <Download className="w-4 h-4 mr-2" /> Sheha Letter
+                      </button>
+                      <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={() => downloadCandidateFile(previewCandidate, 'photo')} disabled={!previewCandidate.photoUrl && !(previewCandidate as any).photoRef}>
                         <Download className="w-4 h-4 mr-2" /> Photo
                       </button>
                     </div>

@@ -2,14 +2,14 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireFirebaseUser } from '../_lib/firebaseAdmin.js';
 import { getSupabaseBuckets, getSupabaseServer } from '../_lib/supabaseServer.js';
 
-type UploadKind = 'profile' | 'cv' | 'document';
+type UploadKind = 'profile' | 'cv' | 'document' | 'id' | 'certificates' | 'tin' | 'sheha';
 
 function json(res: VercelResponse, status: number, body: any) {
   res.status(status).setHeader('content-type', 'application/json').send(JSON.stringify(body));
 }
 
 function pickKind(input: any): UploadKind | null {
-  if (input === 'profile' || input === 'cv' || input === 'document') return input;
+  if (input === 'profile' || input === 'cv' || input === 'document' || input === 'id' || input === 'certificates' || input === 'tin' || input === 'sheha') return input;
   return null;
 }
 

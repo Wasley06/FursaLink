@@ -60,8 +60,7 @@ const controllerItems: SidebarItem[] = [
 
 const adminItems: SidebarItem[] = [
   { icon: LayoutDashboard, labelKey: 'nav.executiveStats', path: '/chairman' },
-  { icon: FileText, labelKey: 'nav.approvals', path: '/chairman/approvals' },
-  { icon: FileCheck, labelKey: 'nav.applicationApprovals', path: '/chairman/application-approvals' },
+  { icon: FileCheck, labelKey: 'nav.applicationApprovals', path: '/chairman/approvals' },
   { icon: BarChart3, labelKey: 'nav.analytics', path: '/chairman/analytics' },
   { icon: Users, labelKey: 'nav.userDirectory', path: '/chairman/users' },
   { icon: Users, labelKey: 'nav.candidateDirectory', path: '/chairman/candidates' },

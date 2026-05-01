@@ -34,6 +34,11 @@ export interface UserProfile {
   cvRef?: StoredFileRef;
   documentsRef?: StoredFileRef;
   photoRef?: StoredFileRef;
+  idRef?: StoredFileRef;
+  certificatesRef?: StoredFileRef;
+  tinRef?: StoredFileRef;
+  shehaLetterRef?: StoredFileRef;
+  tinNumber?: string;
   address?: string;
   profileProgress: number;
   createdAt: any;
