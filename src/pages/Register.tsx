@@ -44,12 +44,6 @@ export default function Register() {
     address: '',
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [idFile, setIdFile] = useState<File | null>(null);
-  const [cvFile, setCvFile] = useState<File | null>(null);
-  const [certificatesFile, setCertificatesFile] = useState<File | null>(null);
-  const [shehaLetterFile, setShehaLetterFile] = useState<File | null>(null);
-  const [tinFile, setTinFile] = useState<File | null>(null);
-  const [tinNumber, setTinNumber] = useState('');
 
   const ageForDob = (dob?: string) => {
     if (!dob) return null;
@@ -89,8 +83,8 @@ export default function Register() {
       setError('Maximum age allowed is 35.');
       return;
     }
-    if (!idFile || !cvFile || !certificatesFile || !shehaLetterFile || !tinFile || !tinNumber.trim()) {
-      setError('Please upload all required documents (ID, CV, Certificates, TIN, Sheha letter) and enter your TIN number.');
+    if (!photoFile) {
+      setError('Profile photo is required.');
       return;
     }
 
@@ -118,7 +112,7 @@ export default function Register() {
         education: formData.education, 
         occupation: formData.occupation, 
         address: formData.address || '',
-        tinNumber: tinNumber.trim(),
+        tinNumber: '',
         photoUrl: '',
         photoRef: null,
         idRef: null,
@@ -134,42 +128,13 @@ export default function Register() {
         updatedAt: serverTimestamp(), 
       }); 
 
-      // Required documents (fast, parallel uploads where possible)
-      try {
-        const [idUp, cvUp, certUp, tinUp, shehaUp] = await Promise.all([
-          uploadUserFile({ uid: user.uid, file: idFile, kind: 'id', nameHint: 'zanzibar-id' }),
-          uploadUserFile({ uid: user.uid, file: cvFile, kind: 'cv', nameHint: 'cv' }),
-          uploadUserFile({ uid: user.uid, file: certificatesFile, kind: 'certificates', nameHint: 'certificates' }),
-          uploadUserFile({ uid: user.uid, file: tinFile, kind: 'tin', nameHint: 'tin' }),
-          uploadUserFile({ uid: user.uid, file: shehaLetterFile, kind: 'sheha', nameHint: 'sheha-letter' }),
-        ]);
-
-        await updateDoc(doc(db, 'users', user.uid), {
-          idRef: idUp.ref,
-          cvRef: cvUp.ref,
-          certificatesRef: certUp.ref,
-          tinRef: tinUp.ref,
-          shehaLetterRef: shehaUp.ref,
-          updatedAt: serverTimestamp(),
-        } as any);
-      } catch (e: any) {
-        // Documents are mandatory for eligibility; fail registration if they couldn't upload.
-        throw new Error(e?.message || 'Document upload failed. Please try again.');
-      }
-
-      if (photoFile) {
-        try {
-          const up = await uploadUserFile({ uid: user.uid, file: photoFile, kind: 'profile', nameHint: 'candidate-photo' });
-          await updateDoc(doc(db, 'users', user.uid), {
-            photoUrl: up.url || '',
-            photoRef: up.ref,
-            updatedAt: serverTimestamp(),
-          } as any);
-        } catch (e) {
-          // Non-blocking: registration succeeds even if optional upload fails.
-          console.warn('Photo upload failed during registration', e);
-        }
-      }
+      // Profile photo (required)
+      const up = await uploadUserFile({ uid: user.uid, file: photoFile, kind: 'profile', nameHint: 'candidate-photo' });
+      await updateDoc(doc(db, 'users', user.uid), {
+        photoUrl: up.url || '',
+        photoRef: up.ref,
+        updatedAt: serverTimestamp(),
+      } as any);
 
       // Notify district controller(s) so the new candidate appears instantly in their workflow.
       try {
@@ -287,8 +252,29 @@ export default function Register() {
 
           {step === 1 ? (
             <div className="space-y-6">
-              <div className="grid md:grid-cols-1 gap-5">
-                <div>
+              <div className="flex items-center justify-center py-2">
+                <label className="cursor-pointer select-none">
+                  <div className="w-36 h-36 rounded-[28px] border-2 border-dashed border-primary/25 bg-white/25 backdrop-blur-md flex flex-col items-center justify-center gap-2 hover:bg-white/35 transition">
+                    <div className="w-12 h-12 rounded-2xl bg-white/60 border border-white/70 flex items-center justify-center overflow-hidden">
+                      {photoFile ? (
+                        <img src={URL.createObjectURL(photoFile)} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-6 h-6 text-primary" />
+                      )}
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-navy/70">Upload Profile</div>
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
+                </label>
+              </div>
+
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-widest text-primary/80">Personal Information</div>
+                <div className="mt-3 h-px bg-white/50" />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-5">
+                <div className="md:col-span-2">
                   <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Full Name</label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
@@ -296,25 +282,17 @@ export default function Register() {
                   </div>
                 </div>
                 <div>
+                  <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Email Address</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                    <input type="email" name="contactEmail" required className="glass-input pl-11" placeholder="you@example.com" value={formData.contactEmail} onChange={handleChange} />
+                  </div>
+                </div>
+                <div>
                   <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Phone Number</label>
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                     <input type="tel" name="phoneNumber" required className="glass-input pl-11" placeholder="077xxxxxxx" value={formData.phoneNumber} onChange={handleChange} />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Email Address</label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                    <input
-                      type="email"
-                      name="contactEmail"
-                      required
-                      className="glass-input pl-11"
-                      placeholder="you@example.com"
-                      value={formData.contactEmail}
-                      onChange={handleChange}
-                    />
                   </div>
                 </div>
               </div>
@@ -408,45 +386,12 @@ export default function Register() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Required Documents</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { label: 'Zanzibar/National ID (Upload)', file: idFile, setFile: setIdFile, accept: 'image/*,application/pdf' },
-                    { label: 'Curriculum Vitae (Upload)', file: cvFile, setFile: setCvFile, accept: 'application/pdf,image/*' },
-                    { label: 'Certificates (Upload)', file: certificatesFile, setFile: setCertificatesFile, accept: 'application/pdf,image/*' },
-                    { label: 'Sheha Letter (Upload)', file: shehaLetterFile, setFile: setShehaLetterFile, accept: 'application/pdf,image/*' },
-                    { label: 'TIN Document (Upload)', file: tinFile, setFile: setTinFile, accept: 'application/pdf,image/*' },
-                  ].map((f) => (
-                    <div key={f.label}>
-                      <div className="text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">{f.label}</div>
-                      <label className="btn-outline w-full py-3 cursor-pointer justify-center border-white/50 bg-white/30">
-                        <span className="text-[11px] font-black uppercase tracking-widest">{f.file ? 'Change file' : 'Upload file'}</span>
-                        <input type="file" accept={f.accept} className="hidden" onChange={(e) => f.setFile(e.target.files?.[0] || null)} />
-                      </label>
-                      {f.file && <div className="mt-1 text-[11px] text-muted font-medium truncate">Selected: {f.file.name}</div>}
-                    </div>
-                  ))}
-
-                  <div className="md:col-span-2">
-                    <div className="text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">TIN Number</div>
-                    <input
-                      type="text"
-                      className="glass-input"
-                      value={tinNumber}
-                      onChange={(e) => setTinNumber(e.target.value)}
-                      placeholder="Enter your TIN number"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-5">
-                  <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2 ml-1">Profile Photo (Optional)</label>
-                  <label className="btn-outline w-full py-4 cursor-pointer justify-center border-white/50 bg-white/30">
-                    <span className="text-[11px] font-black uppercase tracking-widest">Upload Photo</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
-                  </label>
-                  {photoFile && <div className="mt-2 text-xs text-muted font-medium">Selected: {photoFile.name}</div>}
+                <div className="rounded-2xl border border-white/50 bg-white/30 backdrop-blur-md px-5 py-4">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-navy/50">Required Documents</div>
+                  <div className="mt-1 text-sm font-extrabold text-navy">Complete after registration</div>
+                  <p className="mt-1 text-xs text-muted font-medium">
+                    Zanzibar/National ID, CV, Certificates, TIN, and Sheha letter are uploaded in <span className="font-bold text-navy">Profile Settings</span> after you create your account.
+                  </p>
                 </div>
               </div>
 

@@ -13,8 +13,12 @@ export default function SettingsPage() {
   const [uploadPct, setUploadPct] = useState<number>(0);
   const [error, setError] = useState('');
   const [uploadLabel, setUploadLabel] = useState<string>('');
-  const [cvRef, setCvRef] = useState<any>(profile?.cvRef);
-  const [documentsRef, setDocumentsRef] = useState<any>(profile?.documentsRef);
+  const [idRef, setIdRef] = useState<any>((profile as any)?.idRef);
+  const [cvRef, setCvRef] = useState<any>((profile as any)?.cvRef);
+  const [certificatesRef, setCertificatesRef] = useState<any>((profile as any)?.certificatesRef);
+  const [tinRef, setTinRef] = useState<any>((profile as any)?.tinRef);
+  const [shehaLetterRef, setShehaLetterRef] = useState<any>((profile as any)?.shehaLetterRef);
+  const [tinNumber, setTinNumber] = useState<string>(String((profile as any)?.tinNumber || ''));
 
   const initial = useMemo(
     () => ({
@@ -35,8 +39,12 @@ export default function SettingsPage() {
   const [form, setForm] = useState(initial);
 
   React.useEffect(() => setForm(initial), [initial]);
-  React.useEffect(() => setCvRef(profile?.cvRef), [profile?.cvRef]);
-  React.useEffect(() => setDocumentsRef(profile?.documentsRef), [profile?.documentsRef]);
+  React.useEffect(() => setIdRef((profile as any)?.idRef), [(profile as any)?.idRef]);
+  React.useEffect(() => setCvRef((profile as any)?.cvRef), [(profile as any)?.cvRef]);
+  React.useEffect(() => setCertificatesRef((profile as any)?.certificatesRef), [(profile as any)?.certificatesRef]);
+  React.useEffect(() => setTinRef((profile as any)?.tinRef), [(profile as any)?.tinRef]);
+  React.useEffect(() => setShehaLetterRef((profile as any)?.shehaLetterRef), [(profile as any)?.shehaLetterRef]);
+  React.useEffect(() => setTinNumber(String((profile as any)?.tinNumber || '')), [(profile as any)?.tinNumber]);
 
   const wards = form.district ? WARDS[form.district] || [] : [];
 
@@ -109,23 +117,48 @@ export default function SettingsPage() {
     }
   };
 
-  const uploadDoc = async (file: File | null) => {
+  const uploadRequired = async (kind: 'id' | 'certificates' | 'tin' | 'sheha', file: File | null) => {
     if (!profile || !file) return;
     setSaving(true);
     setError('');
     setUploadPct(0);
-    setUploadLabel('Uploading document…');
+    const label = kind === 'id' ? 'ID' : kind === 'certificates' ? 'Certificates' : kind === 'tin' ? 'TIN' : 'Sheha letter';
+    setUploadLabel(`Uploading ${label}…`);
     try {
-      const up = await uploadUserFile({ uid: profile.id, file, kind: 'document', nameHint: file.name, onProgress: setUploadPct });
-      // Minimal: store latest extra document ref. (Can be extended to an array.)
-      setDocumentsRef(up.ref);
-      await updateDoc(doc(db, 'users', profile.id), { documentsRef: up.ref, documentsUrl: up.url || '', updatedAt: serverTimestamp() } as any);
+      const up = await uploadUserFile({ uid: profile.id, file, kind, nameHint: `${kind}-${file.name}`, onProgress: setUploadPct });
+      if (kind === 'id') setIdRef(up.ref);
+      if (kind === 'certificates') setCertificatesRef(up.ref);
+      if (kind === 'tin') setTinRef(up.ref);
+      if (kind === 'sheha') setShehaLetterRef(up.ref);
+      await updateDoc(
+        doc(db, 'users', profile.id),
+        {
+          ...(kind === 'id' ? { idRef: up.ref } : null),
+          ...(kind === 'certificates' ? { certificatesRef: up.ref } : null),
+          ...(kind === 'tin' ? { tinRef: up.ref } : null),
+          ...(kind === 'sheha' ? { shehaLetterRef: up.ref } : null),
+          updatedAt: serverTimestamp(),
+        } as any,
+      );
     } catch (e: any) {
-      setError(e?.message || 'Failed to upload document.');
+      setError(e?.message || `Failed to upload ${label}.`);
     } finally {
       setSaving(false);
       setUploadPct(0);
       setUploadLabel('');
+    }
+  };
+
+  const saveTinNumber = async () => {
+    if (!profile) return;
+    setSaving(true);
+    setError('');
+    try {
+      await updateDoc(doc(db, 'users', profile.id), { tinNumber: tinNumber.trim(), updatedAt: serverTimestamp() } as any);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to save TIN number.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -246,8 +279,34 @@ export default function SettingsPage() {
       </div>
 
       <div className="premium-card space-y-4">
-        <div className="text-sm font-extrabold text-navy">Documents</div>
+        <div className="text-sm font-extrabold text-navy">Required Documents</div>
         <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2">Zanzibar / National ID</label>
+            <label className="btn-outline w-full py-3 cursor-pointer gap-2">
+              <FileText className="w-4 h-4" />
+              <span className="text-xs font-black uppercase tracking-widest">Upload ID</span>
+              <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => uploadRequired('id', e.target.files?.[0] || null)} />
+            </label>
+            {!!idRef && (
+              <button
+                type="button"
+                className="btn-outline w-full py-3 mt-2"
+                disabled={saving}
+                onClick={async () => {
+                  try {
+                    const url = await getSignedDownloadUrl(idRef);
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  } catch (e: any) {
+                    setError(e?.message || 'Failed to open ID.');
+                  }
+                }}
+              >
+                Open ID
+              </button>
+            )}
+          </div>
+
           <div>
             <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2">CV (PDF)</label>
             <label className="btn-outline w-full py-3 cursor-pointer gap-2">
@@ -273,33 +332,97 @@ export default function SettingsPage() {
               </button>
             )}
           </div>
+
           <div>
-            <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2">Other Document</label>
+            <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2">Certificates</label>
             <label className="btn-outline w-full py-3 cursor-pointer gap-2">
               <FileText className="w-4 h-4" />
-              <span className="text-xs font-black uppercase tracking-widest">Upload Document</span>
-              <input type="file" accept=".pdf,image/*" className="hidden" onChange={(e) => uploadDoc(e.target.files?.[0] || null)} />
+              <span className="text-xs font-black uppercase tracking-widest">Upload Certificates</span>
+              <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => uploadRequired('certificates', e.target.files?.[0] || null)} />
             </label>
-            {!!documentsRef && (
+            {!!certificatesRef && (
               <button
                 type="button"
                 className="btn-outline w-full py-3 mt-2"
                 disabled={saving}
                 onClick={async () => {
                   try {
-                    const url = await getSignedDownloadUrl(documentsRef);
+                    const url = await getSignedDownloadUrl(certificatesRef);
                     window.open(url, '_blank', 'noopener,noreferrer');
                   } catch (e: any) {
-                    setError(e?.message || 'Failed to open document.');
+                    setError(e?.message || 'Failed to open certificates.');
                   }
                 }}
               >
-                Open Document
+                Open Certificates
               </button>
             )}
           </div>
+
+          <div>
+            <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2">Sheha Letter</label>
+            <label className="btn-outline w-full py-3 cursor-pointer gap-2">
+              <FileText className="w-4 h-4" />
+              <span className="text-xs font-black uppercase tracking-widest">Upload Sheha Letter</span>
+              <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => uploadRequired('sheha', e.target.files?.[0] || null)} />
+            </label>
+            {!!shehaLetterRef && (
+              <button
+                type="button"
+                className="btn-outline w-full py-3 mt-2"
+                disabled={saving}
+                onClick={async () => {
+                  try {
+                    const url = await getSignedDownloadUrl(shehaLetterRef);
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  } catch (e: any) {
+                    setError(e?.message || 'Failed to open sheha letter.');
+                  }
+                }}
+              >
+                Open Sheha Letter
+              </button>
+            )}
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-[10px] font-black text-navy/40 uppercase tracking-widest mb-2">TIN (Document + Number)</label>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="btn-outline w-full py-3 cursor-pointer gap-2 justify-center">
+                  <FileText className="w-4 h-4" />
+                  <span className="text-xs font-black uppercase tracking-widest">Upload TIN Document</span>
+                  <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => uploadRequired('tin', e.target.files?.[0] || null)} />
+                </label>
+                {!!tinRef && (
+                  <button
+                    type="button"
+                    className="btn-outline w-full py-3 mt-2"
+                    disabled={saving}
+                    onClick={async () => {
+                      try {
+                        const url = await getSignedDownloadUrl(tinRef);
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      } catch (e: any) {
+                        setError(e?.message || 'Failed to open TIN.');
+                      }
+                    }}
+                  >
+                    Open TIN
+                  </button>
+                )}
+              </div>
+              <div>
+                <input className="input-field" value={tinNumber} onChange={(e) => setTinNumber(e.target.value)} placeholder="Enter TIN number" />
+                <button type="button" className="btn-outline w-full py-3 mt-2" disabled={saving} onClick={saveTinNumber}>
+                  Save TIN Number
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="text-xs text-muted font-medium">Files are stored securely and linked to your account.</div>
+
+        <div className="text-xs text-muted font-medium">Upload all required documents to be eligible for approvals.</div>
       </div>
     </div>
   );

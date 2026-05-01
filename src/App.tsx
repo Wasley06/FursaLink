@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -39,6 +39,7 @@ function candidateVerificationPath(profile: any) {
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) {
   const { user, profile, loading } = useAuth();
   const { config, loading: configLoading } = useSystemConfig();
+  const location = useLocation();
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-sky">
@@ -56,6 +57,9 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
   if (!user) return <Navigate to="/login" />;
   if (profile && !allowedRoles.includes(profile.role)) return <Navigate to="/dashboard" />;
   if (candidateNeedsVerification(profile)) return <Navigate to={candidateVerificationPath(profile)} replace />;
+  if (profile?.role === 'candidate' && !String((profile as any)?.photoUrl || '').trim() && !location.pathname.startsWith('/candidate/settings')) {
+    return <Navigate to="/candidate/settings" replace />;
+  }
 
   return <>{children}</>;
 }
