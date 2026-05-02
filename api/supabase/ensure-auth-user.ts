@@ -30,8 +30,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!snap.exists) return json(res, 404, { error: 'profile_not_found' });
 
     const profile = snap.data() as any;
-    const role = String(profile?.role || '');
-    if (role !== 'candidate') return json(res, 403, { error: 'forbidden' });
+    const role = String(profile?.role || '')
+      .trim()
+      .toLowerCase();
+    if (role !== 'candidate') return json(res, 403, { error: 'forbidden', detail: `role:${role || 'none'}` });
 
     const email = normalizeEmail(profile?.contactEmail);
     if (!email) return json(res, 400, { error: 'missing_contact_email' });

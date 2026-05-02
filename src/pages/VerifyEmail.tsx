@@ -12,6 +12,14 @@ function formatOtpError(e: any) {
   const msg = String(e?.message || '');
   const lower = msg.toLowerCase();
   if (lower.includes('signups not allowed')) return 'Email OTP is not available yet. Please try again in a moment.';
+  if (lower.includes('magic link') && lower.includes('email')) {
+    return [
+      'Email delivery failed (SMTP).',
+      'In Supabase → Auth → SMTP, confirm:',
+      'Host `smtp-relay.brevo.com`, Port `587`, Username `apikey`, Password = your Brevo SMTP key.',
+      'Then retry sending OTP.',
+    ].join(' ');
+  }
   if (lower.includes('smtp') && (lower.includes('not configured') || lower.includes('not set') || lower.includes('server'))) {
     return 'Email OTP server is not configured. Set SMTP in Supabase Auth (SMTP settings) and try again.';
   }
@@ -122,7 +130,7 @@ export default function VerifyEmail() {
     setDiag('');
     const cfg = getSupabaseClientConfig();
     const url = cfg?.url || '';
-    const keyPrefix = cfg?.anonKey ? `${cfg.anonKey.slice(0, 12)}…` : '';
+    const keyPrefix = cfg?.anonKey ? `${cfg.anonKey.slice(0, 12)}...` : '';
     try {
       if (!url) {
         setDiag('Supabase config missing: VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not found at runtime.');

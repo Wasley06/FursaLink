@@ -8,12 +8,12 @@ function json(res: VercelResponse, status: number, body: any) {
 
 function isChairmanRole(role: string) {
   const r = String(role || '').trim().toLowerCase();
-  return ['chairman', 'admin'].includes(r);
+  return ['chairman', 'chairperson', 'chair', 'admin', 'chairman_demo', 'chairman-demo'].includes(r);
 }
 
 function isDeveloperRole(role: string) {
   const r = String(role || '').trim().toLowerCase();
-  return ['developer', 'dev'].includes(r);
+  return ['developer', 'dev', 'superadmin', 'super_admin'].includes(r);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -35,7 +35,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!actorSnap.exists) return json(res, 403, { error: 'actor_profile_missing' });
     const actor = actorSnap.data() as any;
     const role = String(actor?.role || '');
-    if (!isChairmanRole(role) && !isDeveloperRole(role)) return json(res, 403, { error: 'forbidden' });
+    if (!isChairmanRole(role) && !isDeveloperRole(role)) {
+      const norm = String(role || '').trim().toLowerCase();
+      return json(res, 403, { error: 'forbidden', detail: `role:${norm || 'none'}` });
+    }
 
     const unique = Array.from(new Set(candidateIds)).slice(0, 500);
     const snaps = await Promise.all(unique.map((id) => db.collection('users').doc(id).get()));

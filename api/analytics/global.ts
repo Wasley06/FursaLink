@@ -9,10 +9,12 @@ function json(res: VercelResponse, status: number, body: any) {
 async function requireRole(uid: string, allowed: string[]) {
   const db = getFirebaseAdminDb();
   const snap = await db.doc(`users/${uid}`).get();
-  const role = String((snap.exists ? (snap.data() as any)?.role : '') || '')
+  if (!snap.exists) throw new Error('profile_missing');
+  const role = String(((snap.data() as any)?.role as any) || '')
     .trim()
     .toLowerCase();
-  if (!role || !allowed.map((s) => s.toLowerCase()).includes(role)) throw new Error('forbidden');
+  const allow = allowed.map((s) => s.toLowerCase());
+  if (!role || !allow.includes(role)) throw new Error(`forbidden:${role || 'none'}`);
   return role;
 }
 
@@ -44,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return json(res, 405, { error: 'method_not_allowed' });
   try {
     const decoded = await requireFirebaseUser(req);
-    await requireRole(decoded.uid, ['chairman', 'developer', 'administrator', 'admin']);
+    await requireRole(decoded.uid, ['chairman', 'chairperson', 'chairman_demo', 'chairman-demo', 'developer', 'dev', 'superadmin', 'administrator', 'admin']);
 
     const candidatesByDistrict: Record<string, number> = {};
     const candidatesByWard: Record<string, number> = {};
@@ -128,7 +130,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (e: any) {
     const m = String(e?.message || '');
     if (m === 'missing_auth') return json(res, 401, { error: 'unauthorized' });
-    if (m === 'forbidden') return json(res, 403, { error: 'forbidden' });
+    if (m === 'profile_missing') return json(res, 404, { error: 'profile_missing' });
+    if (m.startsWith('forbidden:')) return json(res, 403, { error: 'forbidden', detail: m.slice('forbidden:'.length) });
     return json(res, 500, { error: 'server_error', detail: m || 'unknown' });
   }
 }
