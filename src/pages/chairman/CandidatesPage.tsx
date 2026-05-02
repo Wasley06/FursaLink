@@ -9,6 +9,7 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 import { getSignedDownloadUrl } from '../../lib/uploads';
 import { getLiveAppUrl } from '../../lib/liveAppUrl';
 import { addFursaLinkHeader, addKeyValueGrid, addSectionTitle, addTable, createBrandedPdfDoc } from '../../lib/pdf';
+import { formatDateDdMmYyyy } from '../../lib/dateFormat';
 
 function escapeCsvCell(v: any) {
   const s = String(v ?? '');
@@ -562,7 +563,7 @@ export default function ChairmanCandidatesPage() {
                         <div className="font-bold text-navy truncate">{c.district || '-'}</div>
                         <div className="truncate">{c.ward || '-'}</div>
                       </td>
-                      <td className="px-4 py-4 text-[11px] text-muted font-medium hidden xl:table-cell align-top whitespace-nowrap">{c.dob || '-'}</td>
+                      <td className="px-4 py-4 text-[11px] text-muted font-medium hidden xl:table-cell align-top whitespace-nowrap">{formatDateDdMmYyyy(c.dob)}</td>
                       <td className="px-4 py-4 text-[11px] text-muted font-medium hidden xl:table-cell align-top truncate">{c.education || '-'}</td>
                       <td className="px-4 py-4 text-[11px] text-muted font-medium align-top truncate">{c.occupation || '-'}</td>
                       <td className="px-4 py-4 text-[11px] text-muted font-medium hidden 2xl:table-cell align-top truncate">{c.address || '-'}</td>

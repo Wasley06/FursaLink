@@ -116,6 +116,8 @@ export interface Course {
   description: string;
   category: string;
   status: CourseStatus;
+  imageUrl?: string;
+  imageRef?: any;
   startDate?: any;
   endDate?: any;
   capacity?: number;

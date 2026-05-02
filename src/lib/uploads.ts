@@ -27,7 +27,7 @@ export async function uploadUserFile(
   input: {
     uid: string;
     file: File;
-    kind: 'profile' | 'cv' | 'document' | 'id' | 'certificates' | 'tin' | 'sheha';
+    kind: 'profile' | 'cv' | 'document' | 'id' | 'certificates' | 'tin' | 'sheha' | 'course_image' | 'ad_image';
     nameHint?: string;
     onProgress?: (pct: number) => void;
   },

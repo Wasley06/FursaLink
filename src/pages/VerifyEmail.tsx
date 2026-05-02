@@ -244,6 +244,9 @@ export default function VerifyEmail() {
           )}
 
           <div className="mt-6 space-y-4">
+            <button disabled={sending || cooldown > 0} onClick={sendOtp} className="btn-primary w-full py-3 whitespace-nowrap">
+              {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : cooldown > 0 ? `Resend in ${cooldown}s` : 'Send Email OTP'}
+            </button>
             <button
               type="button"
               className="btn-outline w-full py-3 whitespace-nowrap"
@@ -253,9 +256,6 @@ export default function VerifyEmail() {
               }}
             >
               Back
-            </button>
-            <button disabled={sending || cooldown > 0} onClick={sendOtp} className="btn-primary w-full py-3 whitespace-nowrap">
-              {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : cooldown > 0 ? `Resend in ${cooldown}s` : 'Send Email OTP'}
             </button>
 
             <div>

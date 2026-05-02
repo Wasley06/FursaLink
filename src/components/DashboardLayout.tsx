@@ -22,6 +22,7 @@ import {
   Users,
   Shield,
   BookOpen,
+  Megaphone,
   TrendingUp,
   Wrench
 } from 'lucide-react';
@@ -53,6 +54,8 @@ const controllerItems: SidebarItem[] = [
   { icon: Briefcase, labelKey: 'nav.jobManagement', path: '/controller/jobs' },
   { icon: Users, labelKey: 'nav.candidateDirectory', path: '/controller/candidates' },
   { icon: PlusCircle, labelKey: 'nav.createJob', path: '/controller/jobs/new' },
+  { icon: BookOpenIcon, labelKey: 'nav.courses', path: '/controller/courses' },
+  { icon: Megaphone, labelKey: 'nav.ads', path: '/controller/ads' },
   { icon: Bell, labelKey: 'nav.notices', path: '/controller/notices' },
   { icon: MessageSquare, labelKey: 'nav.communications', path: '/controller/messages' },
   { icon: Settings, labelKey: 'nav.settings', path: '/controller/settings' },

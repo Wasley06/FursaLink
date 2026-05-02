@@ -32,14 +32,11 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   ArrowRight,
-  Database,
-  Loader2,
   Clock,
   FileCheck,
   AlertCircle as AlertCircleLucide
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { seedDemoCandidates } from '../lib/seeder';
 import ApprovalsPage from './chairman/ApprovalsPage';
 import ChairmanUsersPage from './chairman/UsersPage';
 import SecurityPage from './chairman/SecurityPage';
@@ -54,7 +51,6 @@ const COLORS = ['#0B4F8A', '#1F8A4D', '#D9A441', '#60A5FA', '#14B8A6', '#F59E0B'
 
 function ExecutiveStats() {
   const navigate = useNavigate();
-  const [seeding, setSeeding] = useState(false);
   const [data, setData] = useState({
     totalApplicants: 0,
     accepted: 0,
@@ -133,18 +129,7 @@ function ExecutiveStats() {
     { month: 'Jun', count: 1100 },
   ];
 
-  const handleSeed = async () => {
-    if (!window.confirm('Seed 300 demo candidates into the database?')) return;
-    setSeeding(true);
-    try {
-      await seedDemoCandidates(300);
-      alert('Seeding complete! 300 candidates added.');
-    } catch (e) {
-      alert('Seeding failed: ' + (e as Error).message);
-    } finally {
-      setSeeding(false);
-    }
-  };
+  // Demo seeding removed from UI (production safety).
 
   return (
     <div className="space-y-8">
@@ -154,18 +139,18 @@ function ExecutiveStats() {
           <p className="text-muted font-bold text-[10px] uppercase tracking-[0.2em]">Zanzibar Youth Council | <span className="text-primary">FursaLink AI Engine</span></p>
         </div>
         <div className="flex gap-3">
-          <button 
-            onClick={handleSeed}
-            disabled={seeding}
-            className="btn-primary bg-gold hover:bg-warning text-white flex items-center gap-2 border-none shadow-lg shadow-gold/20"
-          >
-            {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-            Seed Demo Data
-          </button>
           <button onClick={() => window.print()} className="btn-outline bg-white border-border text-navy flex items-center gap-2">
-            <Download className="w-5 h-5" /> Export PDF
+            <Download className="w-5 h-5" /> Export (Print)
           </button>
-          <button className="btn-primary flex items-center gap-2">
+          <button
+            className="btn-primary flex items-center gap-2"
+            onClick={() => {
+              // Best-effort: open the default mail client; user can attach the exported PDF.
+              const subject = encodeURIComponent('FursaLink — Chairman Report');
+              const body = encodeURIComponent('Attached: exported PDF report from the Chairman dashboard.');
+              window.location.href = `mailto:?subject=${subject}&body=${body}`;
+            }}
+          >
             <Mail className="w-5 h-5" /> Email Reports
           </button>
         </div>

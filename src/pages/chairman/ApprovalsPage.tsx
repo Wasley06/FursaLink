@@ -12,6 +12,7 @@ import { cn } from '../../lib/utils';
 import { getSignedDownloadUrl } from '../../lib/uploads';
 import { getLiveAppUrl } from '../../lib/liveAppUrl';
 import { addFursaLinkHeader, addSectionTitle, addTable, createBrandedPdfDoc } from '../../lib/pdf';
+import { formatDateDdMmYyyy } from '../../lib/dateFormat';
 
 type BulkSize = 50 | 100 | 150 | 250;
 
@@ -570,7 +571,7 @@ export default function ChairmanApprovalsPage() {
                         <div className="font-bold text-navy/80">{c.district || '-'}</div>
                         <div>{c.ward || '-'}</div>
                       </td>
-                      <td className="px-4 py-3 align-top hidden xl:table-cell text-[11px] text-muted font-medium whitespace-nowrap">{c.dob || '-'}</td>
+                      <td className="px-4 py-3 align-top hidden xl:table-cell text-[11px] text-muted font-medium whitespace-nowrap">{formatDateDdMmYyyy(c.dob)}</td>
                       <td className="px-4 py-3 align-top text-[11px] text-muted font-medium">{c.occupation || '-'}</td>
                       <td className="px-4 py-3 align-top">
                         <div className="flex flex-wrap gap-2">

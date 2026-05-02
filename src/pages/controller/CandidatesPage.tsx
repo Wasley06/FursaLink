@@ -9,6 +9,7 @@ import { Modal } from '../../components/Modal';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { getSignedDownloadUrl } from '../../lib/uploads';
 import { addFursaLinkHeader, addKeyValueGrid, addSectionTitle, addTable, createBrandedPdfDoc } from '../../lib/pdf';
+import { formatDateDdMmYyyy } from '../../lib/dateFormat';
 
 export default function CandidatesPage() {
   const { profile } = useAuth();
@@ -476,7 +477,7 @@ export default function CandidatesPage() {
                         </div>
                       </td>
                       <td className="px-4 py-4 text-[11px] text-muted font-medium align-top truncate">{c.ward || '-'}</td>
-                      <td className="px-4 py-4 text-[11px] text-muted font-medium hidden xl:table-cell align-top">{c.dob || '-'}</td>
+                      <td className="px-4 py-4 text-[11px] text-muted font-medium hidden xl:table-cell align-top">{formatDateDdMmYyyy(c.dob)}</td>
                       <td className="px-4 py-4 text-[11px] text-muted font-medium hidden xl:table-cell align-top truncate">{c.education || '-'}</td>
                       <td className="px-4 py-4 text-[11px] text-muted font-medium align-top truncate">{c.occupation || '-'}</td>
                       <td className="px-4 py-4 text-[11px] text-muted font-medium hidden 2xl:table-cell align-top truncate">{c.address || '-'}</td>

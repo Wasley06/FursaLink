@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { collection, query, where, limit, onSnapshot, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { collection, query, where, limit, onSnapshot, orderBy } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Job, Application, UserProfile } from '../types';
 import DashboardLayout from '../components/DashboardLayout';
@@ -14,7 +14,10 @@ import ControllerNoticesPage from './controller/NoticesPage';
 import ControllerMessagesPage from './controller/MessagesPage';
 import ControllerSettingsPage from './controller/SettingsPage';
 import ApplicationsPage from './controller/ApplicationsPage';
+import ControllerCoursesPage from './controller/CoursesPage';
+import ControllerAdsPage from './controller/AdsPage';
 import { logAudit } from '../lib/audit';
+import { getLiveAppUrl } from '../lib/liveAppUrl';
 import { 
   Users, 
   Briefcase, 
@@ -224,15 +227,25 @@ function CreateJob() {
     e.preventDefault();
     setLoading(true);
     try {
-      const ref = await addDoc(collection(db, 'jobs'), {
-        ...formData,
-        district: profile?.district,
-        controllerId: profile?.id,
-        status: 'published',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+      if (!profile?.id) throw new Error('Missing profile.');
+      const token = await auth.currentUser?.getIdToken?.();
+      if (!token) throw new Error('Not signed in.');
+      const res = await fetch(`${getLiveAppUrl()}/api/jobs/save`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          qualifications: formData.qualifications,
+          deadline: formData.deadline,
+          occupation: formData.occupation,
+          district: profile.district || '',
+          status: 'published',
+        }),
       });
-      await logAudit('job:create', { jobId: ref.id, district: profile?.district });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(String(body?.detail || body?.error || `job_create_failed_${res.status}`));
+      await logAudit('job:create', { jobId: body?.jobId || '', district: profile?.district });
       navigate('/controller/jobs');
     } catch (err) {
       console.error(err);
@@ -299,6 +312,8 @@ export default function ControllerDashboard() {
         <Route path="candidates" element={<CandidatesPage />} />
         <Route path="applications" element={<ApplicationsPage />} />
         <Route path="notices" element={<ControllerNoticesPage />} />
+        <Route path="courses" element={<ControllerCoursesPage />} />
+        <Route path="ads" element={<ControllerAdsPage />} />
         <Route path="messages" element={<ControllerMessagesPage />} />
         <Route path="settings" element={<ControllerSettingsPage />} />
         <Route path="*" element={<ControllerOverview />} />

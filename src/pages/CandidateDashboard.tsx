@@ -46,8 +46,9 @@ function Overview() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const contactEmail = String(profile?.contactEmail || '').trim();
   const hasEmail = contactEmail.includes('@');
-  const isVerified = hasEmail ? profile?.emailVerified : profile?.phoneVerified;
-  const verifyPath = isVerified ? '/candidate/settings' : hasEmail ? '/verify-email' : '/verify-phone';
+  // Verified status is EMAIL-only (phone verification is not used for "Verified ID status").
+  const isVerified = hasEmail ? profile?.emailVerified : false;
+  const verifyPath = isVerified ? '/candidate/settings' : '/verify-email';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -184,7 +185,7 @@ function Overview() {
                  <p className="text-[10px] text-muted font-medium italic">Verified profiles are 3x more likely to be shortlisted by agencies.</p>
               </div>
               <span className="btn-primary w-full py-2.5 text-[11px] rounded-xl bg-gold hover:bg-warning shadow-gold/20 border-none transition-all">
-                {isVerified ? 'View profile' : hasEmail ? 'Verify email' : 'Verify phone'}
+                {isVerified ? 'View profile' : hasEmail ? 'Verify email' : 'Add email to verify'}
               </span>
            </Link>
         </div>
