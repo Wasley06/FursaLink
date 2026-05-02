@@ -3,10 +3,11 @@ import type { StoredUserRole, UserRole } from '../types';
 export type LoginRole = UserRole;
 
 export function normalizeLoginRole(role?: string | null): LoginRole {
-  if (role === 'controller') return 'controller';
-  if (role === 'administrator') return 'administrator';
-  if (role === 'chairman' || role === 'admin') return 'chairman';
-  if (role === 'developer' || role === 'dev') return 'developer';
+  const raw = String(role || '').trim().toLowerCase();
+  if (raw === 'controller') return 'controller';
+  if (raw === 'administrator') return 'administrator';
+  if (['chairman', 'chairperson', 'chair', 'admin'].includes(raw)) return 'chairman';
+  if (['developer', 'dev', 'superadmin', 'super_admin'].includes(raw)) return 'developer';
   return 'candidate';
 }
 
@@ -27,10 +28,9 @@ export function labelForRole(role: LoginRole) {
 
 export function normalizeStoredRole(role: StoredUserRole | string | null | undefined): UserRole {
   const raw = typeof role === 'string' ? role.trim().toLowerCase() : '';
-  if (raw === 'admin') return 'chairman';
-  if (raw === 'chairman') return 'chairman';
-  if (raw === 'administrator') return 'administrator';
+  if (['admin', 'chairman', 'chairperson', 'chair', 'chairman_demo', 'chairman-demo'].includes(raw)) return 'chairman';
+  if (['administrator', 'admin_user', 'administrator_demo', 'administrator-demo'].includes(raw)) return 'administrator';
   if (raw === 'controller') return 'controller';
-  if (raw === 'developer' || raw === 'dev') return 'developer';
+  if (['developer', 'dev', 'superadmin', 'super_admin'].includes(raw)) return 'developer';
   return 'candidate';
 }

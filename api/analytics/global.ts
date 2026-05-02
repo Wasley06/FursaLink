@@ -46,7 +46,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return json(res, 405, { error: 'method_not_allowed' });
   try {
     const decoded = await requireFirebaseUser(req);
-    await requireRole(decoded.uid, ['chairman', 'chairperson', 'chairman_demo', 'chairman-demo', 'developer', 'dev', 'superadmin', 'administrator', 'admin']);
+    // Global analytics is visible to all signed-in users (including candidates),
+    // but the UI may highlight extra sections for staff roles.
+    await requireRole(decoded.uid, [
+      'candidate',
+      'chairman',
+      'chairperson',
+      'chairman_demo',
+      'chairman-demo',
+      'developer',
+      'dev',
+      'superadmin',
+      'administrator',
+      'admin',
+      'controller',
+    ]);
 
     const candidatesByDistrict: Record<string, number> = {};
     const candidatesByWard: Record<string, number> = {};

@@ -456,7 +456,12 @@ export default function ChairmanCandidatesPage() {
             <h1 className="text-2xl font-extrabold text-navy">Candidate Directory</h1>
             <p className="text-sm text-muted font-medium">Candidate profiles database with quick actions.</p>
           </div>
-          <input className="input-field w-80" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name/index/occupation…" />
+          <input
+            className="input-field w-80"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search name/occupation/district/ward/age/reference…"
+          />
         </div>
       </div>
 

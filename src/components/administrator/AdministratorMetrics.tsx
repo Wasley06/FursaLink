@@ -360,31 +360,34 @@ export function AdministratorMetrics({
           <div className="text-sm font-extrabold text-navy mb-4">Candidate Distribution by District</div>
           <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={distributionDistrict}
-                margin={{ top: 10, left: 10, right: 10, bottom: 10 }}
-                onClick={(state: any) => {
-                  const name = state?.activeLabel;
-                  if (!name) return;
-                  if ((DISTRICTS as any).includes(name)) {
-                    setDistrict(name);
-                    setWard('all');
-                  }
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" opacity={0.25} />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-15} height={55} />
-                <YAxis tick={{ fontSize: 11 }} />
+              <PieChart>
                 <Tooltip />
-                <Bar dataKey="value" radius={[10, 10, 0, 0]}>
+                <Legend />
+                <Pie
+                  data={distributionDistrict}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={60}
+                  outerRadius={95}
+                  paddingAngle={2}
+                  onClick={(d: any) => {
+                    const name = String(d?.name || '');
+                    if (!name) return;
+                    if ((DISTRICTS as any).includes(name)) {
+                      setDistrict(name as any);
+                      setWard('all');
+                    }
+                  }}
+                  className="cursor-pointer"
+                >
                   {distributionDistrict.map((_, i) => (
                     <Cell key={i} fill={DISTRICT_COLORS[i % DISTRICT_COLORS.length]} />
                   ))}
-                </Bar>
-              </BarChart>
+                </Pie>
+              </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-3 text-xs text-muted font-medium">Tip: click a bar to filter the dashboard to that district.</div>
+          <div className="mt-3 text-xs text-muted font-medium">Tip: click a slice to filter the dashboard to that district.</div>
         </div>
 
         <div className="lg:col-span-2 premium-card">

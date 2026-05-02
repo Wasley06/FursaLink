@@ -417,7 +417,12 @@ export default function CandidatesPage() {
                     </option>
                   ))}
                 </select>
-                <input className="input-field w-72" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name/index/occupation…" />
+                <input
+                  className="input-field w-72"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search name/occupation/district/ward/age/reference…"
+                />
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-xs text-muted font-bold uppercase tracking-widest">{filtered.length} results</div>

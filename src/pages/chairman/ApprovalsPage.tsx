@@ -435,7 +435,7 @@ export default function ChairmanApprovalsPage() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 className="input-field pl-4 pr-4 py-2 w-full sm:w-80"
-                placeholder="Search name/index/occupation…"
+                placeholder="Search name/occupation/district/ward/age/reference…"
               />
             </div>
             <div className="text-xs text-muted font-bold uppercase tracking-widest whitespace-nowrap">{filtered.length} results</div>
@@ -476,9 +476,8 @@ export default function ChairmanApprovalsPage() {
                     <input type="checkbox" className="checkbox" checked={allOnPageSelected} onChange={toggleAllOnPage} aria-label="Select all filtered" />
                   </th>
                   <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-12 whitespace-nowrap">#</th>
-                  <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-40 whitespace-nowrap">Reference</th>
                   <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-20 whitespace-nowrap">Profile</th>
-                  <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] min-w-[220px]">Name</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] min-w-[260px]">Name</th>
                   <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-44 leading-tight whitespace-nowrap">
                     <span className="block">District</span>
                     <span className="block opacity-70">Ward</span>
@@ -507,7 +506,6 @@ export default function ChairmanApprovalsPage() {
                         />
                       </td>
                       <td className="px-4 py-3 align-top text-[11px] font-black text-muted whitespace-nowrap">{idx + 1}.</td>
-                      <td className="px-4 py-3 align-top text-xs font-extrabold text-primary whitespace-nowrap">{c.candidateIndex || '-'}</td>
                       <td className="px-4 py-3 align-top">
                         <div className="w-10 h-10 rounded-2xl bg-white/60 border border-white/50 flex items-center justify-center overflow-hidden">
                           {c.photoUrl ? <img src={c.photoUrl} alt="" className="w-full h-full object-cover" /> : <span className="text-xs font-black text-primary">C</span>}

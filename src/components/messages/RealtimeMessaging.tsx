@@ -251,13 +251,31 @@ export function RealtimeMessaging({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="premium-card p-0 overflow-hidden">
-          <div className="px-6 py-5 border-b border-sky flex items-center justify-between">
-            <div className="text-sm font-extrabold text-navy">Threads</div>
-            <div className="text-[10px] font-black uppercase tracking-widest text-muted">{threads.length}</div>
+          <div className="px-6 py-5 border-b border-sky">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-extrabold text-navy">Threads</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted">{threads.length}</div>
+            </div>
+            <div className="mt-3">
+              <select
+                className="input-field py-2 w-full"
+                value={selectedId}
+                onChange={(e) => setSelectedId(e.target.value)}
+                disabled={recipients.length === 0}
+              >
+                {recipients.length === 0 ? <option value="">No recipients</option> : null}
+                {recipients.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {(r.fullName || r.phoneNumber || r.id).toString()} • {(r.role || 'user').toString()}
+                  </option>
+                ))}
+              </select>
+              <div className="mt-2 text-[11px] text-muted font-medium">Pick a recipient to start a new thread.</div>
+            </div>
           </div>
           <div className="divide-y divide-sky">
             {threads.length === 0 ? (
-              <div className="px-6 py-6 text-sm text-muted italic">No messages yet.</div>
+              <div className="px-6 py-6 text-sm text-muted italic">No messages yet. Select a recipient and send a message.</div>
             ) : (
               threads.map((t) => {
                 const active = t.otherId === selectedId;

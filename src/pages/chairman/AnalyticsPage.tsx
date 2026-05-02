@@ -46,10 +46,6 @@ export default function AnalyticsPage() {
           if (res.status === 404 && String(body?.error || '') === 'profile_missing') {
             throw new Error('Profile not found for this account. Please sign out and sign in again.');
           }
-          if (res.status === 403 || msg.toLowerCase().startsWith('forbidden')) {
-            const detail = msg ? ` (${msg})` : '';
-            throw new Error(`Access denied: Global Analytics is available to Chairman/Developer/Administrator only.${detail}`);
-          }
           throw new Error(msg || `Failed to load analytics (HTTP ${res.status}).`);
         }
         setKpis(body?.kpis || kpis);
