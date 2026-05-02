@@ -9,7 +9,9 @@ function json(res: VercelResponse, status: number, body: any) {
 async function requireRole(uid: string, allowed: string[]) {
   const db = getFirebaseAdminDb();
   const snap = await db.doc(`users/${uid}`).get();
-  const role = String((snap.exists ? (snap.data() as any)?.role : '') || '').toLowerCase();
+  const role = String((snap.exists ? (snap.data() as any)?.role : '') || '')
+    .trim()
+    .toLowerCase();
   if (!role || !allowed.map((s) => s.toLowerCase()).includes(role)) throw new Error('forbidden');
   return role;
 }
@@ -130,4 +132,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return json(res, 500, { error: 'server_error', detail: m || 'unknown' });
   }
 }
-

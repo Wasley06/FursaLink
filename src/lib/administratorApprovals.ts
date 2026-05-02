@@ -70,8 +70,11 @@ export async function pushToAdministratorQueue(input: {
         body: JSON.stringify({ candidateId: input.candidate.id, chairmanRemarks: input.chairmanRemarks || '' }),
       });
       if (!res.ok) {
-        const detail = await res.text().catch(() => '');
-        throw new Error(detail || `push_failed_${res.status}`);
+        const ct = res.headers.get('content-type') || '';
+        const body = ct.includes('application/json') ? await res.json().catch(() => ({})) : null;
+        const txt = body ? '' : await res.text().catch(() => '');
+        const msg = String((body as any)?.detail || (body as any)?.error || txt || '').trim();
+        throw new Error(msg || `push_failed_${res.status}`);
       }
 
       for (const adminId of input.administratorIds || []) {
@@ -180,8 +183,11 @@ export async function pushManyToAdministratorQueue(input: {
         body: JSON.stringify({ candidateIds: candidates.map((c) => c.id), chairmanRemarks: input.chairmanRemarks || '' }),
       });
       if (!res.ok) {
-        const detail = await res.text().catch(() => '');
-        throw new Error(detail || `push_failed_${res.status}`);
+        const ct = res.headers.get('content-type') || '';
+        const body = ct.includes('application/json') ? await res.json().catch(() => ({})) : null;
+        const txt = body ? '' : await res.text().catch(() => '');
+        const msg = String((body as any)?.detail || (body as any)?.error || txt || '').trim();
+        throw new Error(msg || `push_failed_${res.status}`);
       }
 
       for (const adminId of input.administratorIds || []) {

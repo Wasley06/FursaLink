@@ -73,7 +73,7 @@ const administratorItems: SidebarItem[] = [
   { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/administrator' },
   { icon: FileText, labelKey: 'nav.approvals', path: '/administrator/approvals' },
   { icon: BarChart3, labelKey: 'nav.analytics', path: '/administrator/analytics' },
-  { icon: FileText, labelKey: 'nav.dossiers', path: '/administrator/dossiers' },
+  { icon: FileText, labelKey: 'nav.dossiers', path: '/administrator/profiles' },
   { icon: MessageSquare, labelKey: 'nav.messages', path: '/administrator/messages' },
   { icon: Settings, labelKey: 'nav.systemConfig', path: '/administrator/settings' },
 ];

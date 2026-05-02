@@ -248,7 +248,7 @@ export default function ChairmanCandidatesPage() {
       )
       .join('');
     w.document.write(`
-      <html><head><title>Candidate Directory</title>
+      <html><head><title>Candidate Profiles</title>
       <meta charset="utf-8" />
       <style>
         body{font-family:system-ui,Segoe UI,Arial;padding:20px}
@@ -264,15 +264,15 @@ export default function ChairmanCandidatesPage() {
           <img src="${brandLogo}" alt="FursaLink" />
           <div>
             <div class="t">FursaLink</div>
-            <div class="sub">Candidate Directory Export</div>
+            <div class="sub">Candidate Profiles Export</div>
           </div>
         </div>
-        <h1>Candidate Directory</h1>
+        <h1>Candidate Profiles</h1>
         <div style="margin-bottom:12px;color:#64748b;font-size:12px;">District: ${escapeCsvCell(district)} • Ward: ${escapeCsvCell(ward)} • Total: ${filtered.length}</div>
         <table>
           <thead><tr style="text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:#0b3d91;">
             <th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;">Index</th>
-            <th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;">Candidate</th>
+            <th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;">Profile</th>
             <th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;">District</th>
             <th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;">Ward</th>
             <th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;">Occupation</th>
@@ -289,16 +289,28 @@ export default function ChairmanCandidatesPage() {
     const w = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
     if (!w) return;
     const brandLogo = `${getLiveAppUrl()}/brand/logo.png`;
+    const photo = String(c.photoUrl || '').trim();
     w.document.write(`
-      <html><head><title>${escapeCsvCell(c.fullName)}</title><meta charset="utf-8" />
+      <html><head><title>${escapeCsvCell(c.fullName)} - Profile</title><meta charset="utf-8" />
       <style>
-        body{font-family:system-ui,Segoe UI,Arial;padding:24px}
-        .brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}
-        .brand img{width:44px;height:44px;object-fit:contain;border-radius:12px;border:1px solid #e5e7eb;background:#fff}
-        .brand .t{font-weight:900;letter-spacing:.02em;color:#083B66}
-        h1{margin:0 0 10px}
-        .meta{color:#64748b;font-size:12px;margin-bottom:14px}
-        pre{white-space:pre-wrap;font-size:12px;background:#f8fafc;border:1px solid #e5e7eb;padding:12px;border-radius:12px}
+        :root{--navy:#083B66;--muted:#64748b;--border:#e2e8f0;--card:#f8fafc;--chip:#fff7e6;}
+        body{font-family:system-ui,Segoe UI,Arial;padding:22px;color:#0f172a}
+        .brand{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+        .brand img{width:40px;height:40px;object-fit:contain;border-radius:12px;border:1px solid var(--border);background:#fff}
+        .brand .t{font-weight:900;letter-spacing:.02em;color:var(--navy)}
+        .sub{color:var(--muted);font-size:12px;margin-top:2px}
+        .top{display:flex;gap:16px;align-items:flex-start;margin:12px 0 18px}
+        .photo{width:110px;height:110px;border-radius:18px;border:3px solid #fbbf24;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center}
+        .photo img{width:100%;height:100%;object-fit:cover}
+        h1{margin:0;font-size:28px;letter-spacing:.01em;color:#0b2b4a}
+        .meta{color:var(--muted);font-size:12px;margin-top:6px}
+        .tag{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid #fde68a;color:#92400e;font-weight:900;font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+        .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+        .card{border:1px solid var(--border);border-radius:14px;background:var(--card);padding:10px 12px}
+        .l{font-size:10px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+        .v{margin-top:6px;font-weight:900;color:#0f172a;font-size:13px}
+        .v.m{font-weight:700;color:#0f172a}
+        .foot{margin-top:14px;color:var(--muted);font-size:11px}
       </style>
       </head><body>
         <div class="brand">
@@ -308,9 +320,27 @@ export default function ChairmanCandidatesPage() {
             <div class="meta" style="margin:2px 0 0;">Candidate Profile Export</div>
           </div>
         </div>
-        <h1>${escapeCsvCell(c.fullName || '')}</h1>
-        <div class="meta">${escapeCsvCell(c.candidateIndex || '')} • ${escapeCsvCell(c.phoneNumber || '')}</div>
-        <pre>${escapeCsvCell(JSON.stringify(c, null, 2))}</pre>
+        <div class="top">
+          <div class="photo">
+            ${photo ? `<img src="${escapeCsvCell(photo)}" alt="" />` : `<div style="font-weight:900;color:var(--navy);">No photo</div>`}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div class="tag">PROFILE</div>
+            <h1>${escapeCsvCell(c.fullName || '')}</h1>
+            <div class="meta">${escapeCsvCell(c.candidateIndex || '')} • ${escapeCsvCell(c.occupation || '')}</div>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="card"><div class="l">Phone</div><div class="v">${escapeCsvCell(c.phoneNumber || '-')}</div></div>
+          <div class="card"><div class="l">Email</div><div class="v m">${escapeCsvCell((c as any).contactEmail || (c as any).email || '-')}</div></div>
+          <div class="card"><div class="l">District / Ward</div><div class="v">${escapeCsvCell(c.district || '-')} / ${escapeCsvCell(c.ward || '-')}</div></div>
+          <div class="card"><div class="l">DOB</div><div class="v">${escapeCsvCell(c.dob || '-')}</div></div>
+          <div class="card"><div class="l">Education</div><div class="v">${escapeCsvCell(c.education || '-')}</div></div>
+          <div class="card"><div class="l">Address</div><div class="v m">${escapeCsvCell(c.address || '-')}</div></div>
+        </div>
+
+        <div class="foot">Generated by FursaLink Zanzibar • ${new Date().toLocaleString()}</div>
         <script>window.onload = () => window.print();</script>
       </body></html>
     `);
@@ -344,7 +374,7 @@ export default function ChairmanCandidatesPage() {
           </div>
           <div className="flex-1">
             <h1 className="text-2xl font-extrabold text-navy">Candidate Directory</h1>
-            <p className="text-sm text-muted font-medium">Candidate database with quick actions.</p>
+            <p className="text-sm text-muted font-medium">Candidate profiles database with quick actions.</p>
           </div>
           <input className="input-field w-80" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name/index/occupation…" />
         </div>
@@ -414,7 +444,7 @@ export default function ChairmanCandidatesPage() {
                 <thead className="bg-sky/50">
                   <tr>
                     <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-12 whitespace-nowrap">#</th>
-                    <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-28 whitespace-nowrap">Index</th>
+                    <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-32 whitespace-nowrap">Reference</th>
                     <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] min-w-[240px]">Candidate</th>
                     <th className="px-4 py-3 text-[10px] font-black text-primary uppercase tracking-[0.14em] w-44 leading-tight whitespace-nowrap">
                       <span className="block">District</span>

@@ -35,7 +35,7 @@ function asString(v: any) {
   return typeof v === 'string' ? v : v == null ? '' : String(v);
 }
 
-function CandidateDossierModal({
+function CandidateProfileModal({
   open,
   row,
   onClose,
@@ -117,7 +117,7 @@ function CandidateDossierModal({
       open={open}
       onClose={onClose}
       size="xl"
-      title={`Candidate Dossier — ${name}${index ? ` (${index})` : ''}`}
+      title={`Candidate Profile — ${name}${index ? ` (${index})` : ''}`}
       footer={
         row ? (
           <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
@@ -693,7 +693,7 @@ export default function AdministratorApprovalsPage() {
         </div>
       </div>
 
-      <CandidateDossierModal
+      <CandidateProfileModal
         open={!!activeRow}
         row={activeRow}
         deciding={deciding}

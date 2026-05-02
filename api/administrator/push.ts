@@ -7,13 +7,13 @@ function json(res: VercelResponse, status: number, body: any) {
 }
 
 function isChairmanRole(role: string) {
-  const r = String(role || '').trim();
-  return ['chairman', 'Chairman', 'admin', 'Admin', 'ADMIN'].includes(r);
+  const r = String(role || '').trim().toLowerCase();
+  return ['chairman', 'admin'].includes(r);
 }
 
 function isDeveloperRole(role: string) {
-  const r = String(role || '').trim();
-  return ['developer', 'Developer', 'dev', 'Dev', 'DEV'].includes(r);
+  const r = String(role || '').trim().toLowerCase();
+  return ['developer', 'dev'].includes(r);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

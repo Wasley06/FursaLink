@@ -40,7 +40,13 @@ export default function AnalyticsPage() {
           headers: { authorization: `Bearer ${token}` },
         });
         const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(body?.detail || body?.error || 'Failed to load analytics.');
+        if (!res.ok) {
+          const msg = String(body?.detail || body?.error || '').trim();
+          if (res.status === 403 || msg.toLowerCase() === 'forbidden') {
+            throw new Error('Access denied: Global Analytics is available to Chairman/Developer/Administrator only.');
+          }
+          throw new Error(msg || 'Failed to load analytics.');
+        }
         setKpis(body?.kpis || kpis);
         setByDistrict(Array.isArray(body?.byDistrict) ? body.byDistrict : []);
         setByWard(Array.isArray(body?.byWard) ? body.byWard : []);

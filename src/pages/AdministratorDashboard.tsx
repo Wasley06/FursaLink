@@ -1,11 +1,11 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 
 const DashboardPage = React.lazy(() => import('./administrator/DashboardPage'));
 const ApprovalsPage = React.lazy(() => import('./administrator/ApprovalsPage'));
 const AnalyticsPage = React.lazy(() => import('./administrator/AnalyticsPage'));
-const DossiersPage = React.lazy(() => import('./administrator/DossiersPage'));
+const ProfilesPage = React.lazy(() => import('./administrator/DossiersPage'));
 const MessagesPage = React.lazy(() => import('./administrator/MessagesPage'));
 const SettingsPage = React.lazy(() => import('./administrator/SettingsPage'));
 
@@ -28,7 +28,8 @@ export default function AdministratorDashboard() {
         <Route index element={lazy(<DashboardPage />)} />
         <Route path="approvals" element={lazy(<ApprovalsPage />)} />
         <Route path="analytics" element={lazy(<AnalyticsPage />)} />
-        <Route path="dossiers" element={lazy(<DossiersPage />)} />
+        <Route path="profiles" element={lazy(<ProfilesPage />)} />
+        <Route path="dossiers" element={<Navigate to="/administrator/profiles" replace />} />
         <Route path="messages" element={lazy(<MessagesPage />)} />
         <Route path="settings" element={lazy(<SettingsPage />)} />
         <Route path="*" element={lazy(<DashboardPage />)} />
@@ -36,4 +37,3 @@ export default function AdministratorDashboard() {
     </DashboardLayout>
   );
 }
-
