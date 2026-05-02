@@ -8,6 +8,7 @@ import { Modal } from '../../components/Modal';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { getSignedDownloadUrl } from '../../lib/uploads';
 import { getLiveAppUrl } from '../../lib/liveAppUrl';
+import { addFursaLinkHeader, addKeyValueGrid, addSectionTitle, addTable, createBrandedPdfDoc } from '../../lib/pdf';
 
 function escapeCsvCell(v: any) {
   const s = String(v ?? '');
@@ -232,6 +233,8 @@ export default function ChairmanCandidatesPage() {
   };
 
   const printList = () => {
+    exportListPdf();
+    return;
     const w = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
     if (!w) return;
     const brandLogo = `${getLiveAppUrl()}/brand/logo.png`;
@@ -285,7 +288,44 @@ export default function ChairmanCandidatesPage() {
     w.document.close();
   };
 
+  const exportListPdf = async () => {
+    setCandidateError('');
+    try {
+      const doc = createBrandedPdfDoc({ title: 'Candidate Directory' });
+      let y = await addFursaLinkHeader(doc, { title: 'Candidate Directory', subtitle: 'Candidate profiles export' });
+      y = addSectionTitle(doc, { text: 'Filters', y });
+      y = addKeyValueGrid(doc, {
+        y,
+        items: [
+          { label: 'District', value: district === 'all' ? 'All' : String(district) },
+          { label: 'Ward', value: ward === 'all' ? 'All' : String(ward) },
+          { label: 'Total', value: String(filtered.length) },
+        ],
+      });
+      y = addSectionTitle(doc, { text: 'Profiles', y: y + 6 });
+      const rows = filtered.slice(0, 800).map((c, idx) => [
+        `${idx + 1}.`,
+        c.candidateIndex || '',
+        c.fullName || '',
+        c.phoneNumber || '',
+        c.district || '',
+        c.ward || '',
+        c.occupation || '',
+      ]);
+      addTable(doc, {
+        startY: y,
+        head: [['#', 'Reference', 'Name', 'Phone', 'District', 'Ward', 'Occupation']],
+        body: rows,
+      });
+      doc.save(`fursalink_candidate_directory_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (e: any) {
+      setCandidateError(e?.message || 'Failed to generate PDF.');
+    }
+  };
+
   const printCandidate = (c: UserProfile) => {
+    exportProfilePdf(c);
+    return;
     const w = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
     if (!w) return;
     const brandLogo = `${getLiveAppUrl()}/brand/logo.png`;
@@ -345,6 +385,46 @@ export default function ChairmanCandidatesPage() {
       </body></html>
     `);
     w.document.close();
+  };
+
+  const exportProfilePdf = async (c: UserProfile) => {
+    setCandidateError('');
+    try {
+      const doc = createBrandedPdfDoc({ title: `${c.fullName || 'Candidate'} - Profile` });
+      let y = await addFursaLinkHeader(doc, { title: 'Candidate Profile', subtitle: 'FursaLink branded export' });
+      y = addSectionTitle(doc, { text: 'Summary', y });
+      y = addKeyValueGrid(doc, {
+        y,
+        items: [
+          { label: 'Name', value: String(c.fullName || '-') },
+          { label: 'Reference', value: String(c.candidateIndex || '-') },
+          { label: 'Occupation', value: String(c.occupation || '-') },
+          { label: 'Phone', value: String(c.phoneNumber || '-') },
+          { label: 'District', value: String(c.district || '-') },
+          { label: 'Ward', value: String(c.ward || '-') },
+          { label: 'DOB', value: String(c.dob || '-') },
+          { label: 'Education', value: String(c.education || '-') },
+          { label: 'Address', value: String(c.address || '-') },
+        ],
+      });
+
+      const files = [
+        { name: 'Profile Photo', ok: !!(c.photoUrl || (c as any).photoRef) },
+        { name: 'CV', ok: !!(c.cvUrl || (c as any).cvRef) },
+        { name: 'Documents', ok: !!(c.documentsUrl || (c as any).documentsRef) },
+        { name: 'ID', ok: !!((c as any).idUrl || (c as any).idRef) },
+        { name: 'Certificates', ok: !!((c as any).certificatesUrl || (c as any).certificatesRef) },
+        { name: 'TIN', ok: !!((c as any).tinUrl || (c as any).tinRef) },
+        { name: 'Sheha Letter', ok: !!((c as any).shehaLetterUrl || (c as any).shehaLetterRef) },
+      ];
+      y = addSectionTitle(doc, { text: 'Documents', y: y + 6 });
+      addTable(doc, { startY: y, head: [['Document', 'Available']], body: files.map((f) => [f.name, f.ok ? 'Yes' : 'No']) });
+
+      const safe = (c.fullName || 'candidate').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 40) || 'candidate';
+      doc.save(`fursalink_${safe}_profile.pdf`);
+    } catch (e: any) {
+      setCandidateError(e?.message || 'Failed to generate PDF.');
+    }
   };
 
   const openFile = async (label: string, url?: string, refObj?: any) => {

@@ -8,6 +8,7 @@ import type { UserProfile } from '../../types';
 import { Modal } from '../../components/Modal';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { getSignedDownloadUrl } from '../../lib/uploads';
+import { addFursaLinkHeader, addKeyValueGrid, addSectionTitle, addTable, createBrandedPdfDoc } from '../../lib/pdf';
 
 export default function CandidatesPage() {
   const { profile } = useAuth();
@@ -224,6 +225,8 @@ export default function CandidatesPage() {
   };
 
   const printList = () => {
+    exportListPdf();
+    return;
     const html = `
       <html>
         <head>
@@ -267,7 +270,35 @@ export default function CandidatesPage() {
     w.print();
   };
 
+  const exportListPdf = async () => {
+    setCandidateError('');
+    try {
+      const doc = createBrandedPdfDoc({ title: 'Candidate Directory' });
+      let y = await addFursaLinkHeader(doc, { title: 'Candidate Directory', subtitle: 'Controller export' });
+      y = addSectionTitle(doc, { text: 'Filters', y });
+      y = addKeyValueGrid(doc, {
+        y,
+        items: [
+          { label: 'District', value: String(profile?.district || '-') },
+          { label: 'Ward', value: ward === 'all' ? 'All' : String(ward) },
+          { label: 'Total', value: String(filtered.length) },
+        ],
+      });
+      y = addSectionTitle(doc, { text: 'Profiles', y: y + 6 });
+      addTable(doc, {
+        startY: y,
+        head: [['#', 'Reference', 'Name', 'Phone', 'Ward', 'Occupation']],
+        body: filtered.slice(0, 800).map((c, idx) => [`${idx + 1}.`, c.candidateIndex || '', c.fullName || '', c.phoneNumber || '', c.ward || '', c.occupation || '']),
+      });
+      doc.save(`fursalink_candidate_directory_${String(profile?.district || 'district')}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (e: any) {
+      setCandidateError(e?.message || 'Failed to generate PDF.');
+    }
+  };
+
   const printCandidate = (c: UserProfile) => {
+    exportProfilePdf(c);
+    return;
     const html = `
       <html>
         <head>
@@ -307,6 +338,34 @@ export default function CandidatesPage() {
     w.document.close();
     w.focus();
     w.print();
+  };
+
+  const exportProfilePdf = async (c: UserProfile) => {
+    setCandidateError('');
+    try {
+      const doc = createBrandedPdfDoc({ title: `${c.fullName || 'Candidate'} - Profile` });
+      let y = await addFursaLinkHeader(doc, { title: 'Candidate Profile', subtitle: 'Controller export' });
+      y = addSectionTitle(doc, { text: 'Summary', y });
+      addKeyValueGrid(doc, {
+        y,
+        items: [
+          { label: 'Name', value: String(c.fullName || '-') },
+          { label: 'Reference', value: String(c.candidateIndex || '-') },
+          { label: 'Occupation', value: String(c.occupation || '-') },
+          { label: 'Phone', value: String(c.phoneNumber || '-') },
+          { label: 'District', value: String(c.district || '-') },
+          { label: 'Ward', value: String(c.ward || '-') },
+          { label: 'DOB', value: String(c.dob || '-') },
+          { label: 'Education', value: String((c as any).education || '-') },
+          { label: 'Address', value: String((c as any).address || '-') },
+          { label: 'Email', value: String((c as any).contactEmail || (c as any).email || '-') },
+        ],
+      });
+      const safe = (c.fullName || 'candidate').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 40) || 'candidate';
+      doc.save(`fursalink_${safe}_profile.pdf`);
+    } catch (e: any) {
+      setCandidateError(e?.message || 'Failed to generate PDF.');
+    }
   };
 
   const openFile = async (label: string, url?: string, refObj?: any) => {

@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { auth } from '../../lib/firebase';
 import { getLiveAppUrl } from '../../lib/liveAppUrl';
+import { addFursaLinkHeader, addKeyValueGrid, addSectionTitle, addTable, createBrandedPdfDoc } from '../../lib/pdf';
 
 type DistrictRow = { district: string; candidates: number; jobs: number; applications: number };
 type WardRow = { ward: string; candidates: number };
@@ -64,57 +65,34 @@ export default function AnalyticsPage() {
   const COLORS = ['#0B4F8A', '#1F8A4D', '#D9A441', '#DC2626', '#60A5FA', '#14B8A6', '#F59E0B'];
 
   const exportPdf = () => {
-    const w = window.open('', '_blank', 'noopener,noreferrer,width=980,height=720');
-    if (!w) return;
-    const brandLogo = `${getLiveAppUrl()}/brand/logo.png`;
-    const districtRows = byDistrict
-      .map(
-        (r) =>
-          `<tr><td>${r.district}</td><td style="text-align:right;font-weight:800;">${r.candidates}</td><td style="text-align:right;">${r.jobs}</td><td style="text-align:right;">${r.applications}</td></tr>`,
-      )
-      .join('');
-    w.document.write(`
-      <html><head><title>Global Analytics</title><meta charset="utf-8" />
-      <style>
-        body{font-family:system-ui,Segoe UI,Arial;padding:20px}
-        .brand{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-        .brand img{width:40px;height:40px;object-fit:contain;border-radius:12px;border:1px solid #e5e7eb;background:#fff}
-        .brand .t{font-weight:900;letter-spacing:.02em;color:#083B66}
-        .sub{color:#64748b;font-size:12px;margin-top:2px}
-        h1{margin:0 0 10px}
-        .kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:14px 0 18px}
-        .kpi{border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;background:#f8fafc}
-        .kpi .l{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
-        .kpi .v{font-size:18px;font-weight:900;color:#0f172a;margin-top:6px}
-        table{width:100%;border-collapse:collapse;font-size:12px}
-        th,td{padding:10px;border-bottom:1px solid #e2e8f0}
-        th{text-align:left;text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:#0b3d91}
-      </style>
-      </head><body>
-        <div class="brand">
-          <img src="${brandLogo}" alt="FursaLink" />
-          <div>
-            <div class="t">FursaLink</div>
-            <div class="sub">Global Analytics Export</div>
-          </div>
-        </div>
-        <h1>Global Analytics</h1>
-        <div class="kpis">
-          <div class="kpi"><div class="l">Candidates</div><div class="v">${kpis.candidates}</div></div>
-          <div class="kpi"><div class="l">Controllers</div><div class="v">${kpis.controllers}</div></div>
-          <div class="kpi"><div class="l">Chairmen</div><div class="v">${kpis.chairmen}</div></div>
-          <div class="kpi"><div class="l">Open Jobs</div><div class="v">${kpis.openJobs}</div></div>
-          <div class="kpi"><div class="l">Pending Apps</div><div class="v">${kpis.pendingApps}</div></div>
-        </div>
-        <h2 style="margin:0 0 10px;font-size:14px;color:#0f172a;">Applications by District</h2>
-        <table>
-          <thead><tr><th>District</th><th style="text-align:right;">Candidates</th><th style="text-align:right;">Jobs</th><th style="text-align:right;">Applications</th></tr></thead>
-          <tbody>${districtRows}</tbody>
-        </table>
-        <script>window.onload=()=>window.print();</script>
-      </body></html>
-    `);
-    w.document.close();
+    exportPdfFile();
+  };
+
+  const exportPdfFile = async () => {
+    try {
+      const doc = createBrandedPdfDoc({ title: 'Global Analytics' });
+      let y = await addFursaLinkHeader(doc, { title: 'Global Analytics', subtitle: 'District overview export' });
+      y = addSectionTitle(doc, { text: 'KPIs', y });
+      y = addKeyValueGrid(doc, {
+        y,
+        items: [
+          { label: 'Candidates', value: String(kpis.candidates) },
+          { label: 'Controllers', value: String(kpis.controllers) },
+          { label: 'Chairmen', value: String(kpis.chairmen) },
+          { label: 'Open Jobs', value: String(kpis.openJobs) },
+          { label: 'Pending Apps', value: String(kpis.pendingApps) },
+        ],
+      });
+      y = addSectionTitle(doc, { text: 'By District', y: y + 6 });
+      addTable(doc, {
+        startY: y,
+        head: [['District', 'Candidates', 'Jobs', 'Applications']],
+        body: byDistrict.map((r) => [r.district, r.candidates, r.jobs, r.applications]),
+      });
+      doc.save(`fursalink_global_analytics_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (e) {
+      // fallback: do nothing; UI already shows errors for data loading, not export.
+    }
   };
 
   const downloadCsv = () => {
