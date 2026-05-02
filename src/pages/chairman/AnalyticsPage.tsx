@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { collection, documentId, getDocs, limit, orderBy, query, startAfter, where } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -13,46 +12,40 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { db } from '../../lib/firebase';
-import type { Application, Job, UserProfile } from '../../types';
+import { auth } from '../../lib/firebase';
 import { getLiveAppUrl } from '../../lib/liveAppUrl';
+
+type DistrictRow = { district: string; candidates: number; jobs: number; applications: number };
+type WardRow = { ward: string; candidates: number };
+type OccupationRow = { occupation: string; candidates: number };
+type NameValue = { name: string; value: number };
 
 export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [apps, setApps] = useState<Application[]>([]);
+  const [byDistrict, setByDistrict] = useState<DistrictRow[]>([]);
+  const [byWard, setByWard] = useState<WardRow[]>([]);
+  const [byOccupation, setByOccupation] = useState<OccupationRow[]>([]);
+  const [jobStatus, setJobStatus] = useState<NameValue[]>([]);
+  const [kpis, setKpis] = useState({ candidates: 0, controllers: 0, chairmen: 0, openJobs: 0, pendingApps: 0 });
 
   useEffect(() => {
     const run = async () => {
       setError('');
       try {
-        const fetchPaged = async <T,>(path: string, pageSize: number, opts?: { whereRoleCandidate?: boolean }) => {
-          const out: T[] = [];
-          let cursor: any = null;
-          for (let i = 0; i < 20; i += 1) {
-            const base = collection(db, path);
-            const q = opts?.whereRoleCandidate
-              ? query(base, where('role', '==', 'candidate'), orderBy(documentId()), limit(pageSize), ...(cursor ? [startAfter(cursor)] : []))
-              : query(base, orderBy(documentId()), limit(pageSize), ...(cursor ? [startAfter(cursor)] : []));
-            const snap = await getDocs(q);
-            out.push(...(snap.docs.map((d) => ({ id: d.id, ...d.data() } as any)) as T[]));
-            const last = snap.docs[snap.docs.length - 1] || null;
-            if (!last || snap.docs.length < pageSize) break;
-            cursor = last;
-          }
-          return out;
-        };
-
-        const [candidateUsers, j, a] = await Promise.all([
-          fetchPaged<UserProfile>('users', 1500, { whereRoleCandidate: true }),
-          fetchPaged<Job>('jobs', 1500),
-          fetchPaged<Application>('applications', 3000),
-        ]);
-        setUsers(candidateUsers);
-        setJobs(j);
-        setApps(a);
+        if (!auth.currentUser) throw new Error('You must be signed in.');
+        const token = await auth.currentUser.getIdToken();
+        const res = await fetch(`${getLiveAppUrl()}/api/analytics/global`, {
+          method: 'GET',
+          headers: { authorization: `Bearer ${token}` },
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.detail || body?.error || 'Failed to load analytics.');
+        setKpis(body?.kpis || kpis);
+        setByDistrict(Array.isArray(body?.byDistrict) ? body.byDistrict : []);
+        setByWard(Array.isArray(body?.byWard) ? body.byWard : []);
+        setByOccupation(Array.isArray(body?.byOccupation) ? body.byOccupation : []);
+        setJobStatus(Array.isArray(body?.jobStatus) ? body.jobStatus : []);
       } catch (e: any) {
         setError(e?.message || 'Failed to load analytics.');
       } finally {
@@ -61,65 +54,6 @@ export default function AnalyticsPage() {
     };
     run();
   }, []);
-
-  const byDistrict = useMemo(() => {
-    const map: Record<string, { district: string; candidates: number; jobs: number; applications: number }> = {};
-    for (const u of users) {
-      const d = u.district || 'Unknown';
-      map[d] ||= { district: d, candidates: 0, jobs: 0, applications: 0 };
-      map[d].candidates += 1;
-    }
-    const jobDistrict: Record<string, string> = {};
-    for (const j of jobs) {
-      const d = j.district || 'Unknown';
-      jobDistrict[j.id] = d;
-      map[d] ||= { district: d, candidates: 0, jobs: 0, applications: 0 };
-      map[d].jobs += 1;
-    }
-    for (const a of apps) {
-      const d = jobDistrict[a.jobId] || 'Unknown';
-      map[d] ||= { district: d, candidates: 0, jobs: 0, applications: 0 };
-      map[d].applications += 1;
-    }
-    return Object.values(map).sort((a, b) => b.applications - a.applications).slice(0, 12);
-  }, [apps, jobs, users]);
-
-  const byWard = useMemo(() => {
-    const map: Record<string, { ward: string; candidates: number }> = {};
-    for (const u of users) {
-      const w = u.ward || 'Unknown';
-      map[w] ||= { ward: w, candidates: 0 };
-      map[w].candidates += 1;
-    }
-    return Object.values(map).sort((a, b) => b.candidates - a.candidates).slice(0, 10);
-  }, [users]);
-
-  const byOccupation = useMemo(() => {
-    const map: Record<string, { occupation: string; candidates: number }> = {};
-    for (const u of users) {
-      const o = (u.occupation || 'Unknown').toString();
-      map[o] ||= { occupation: o, candidates: 0 };
-      map[o].candidates += 1;
-    }
-    return Object.values(map).sort((a, b) => b.candidates - a.candidates).slice(0, 10);
-  }, [users]);
-
-  const jobStatus = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const j of jobs) map[j.status || 'unknown'] = (map[j.status || 'unknown'] || 0) + 1;
-    const entries = Object.entries(map).map(([name, value]) => ({ name, value }));
-    return entries.sort((a, b) => b.value - a.value);
-  }, [jobs]);
-
-  const kpis = useMemo(() => {
-    const candidates = users.length;
-    // This page loads candidate docs only (fast). Controllers/chairmen are omitted.
-    const controllers = 0;
-    const chairmen = 0;
-    const openJobs = jobs.filter((j) => j.status === 'published').length;
-    const pendingApps = apps.filter((a) => a.status === 'pending' || a.status === 'shortlisted').length;
-    return { candidates, controllers, chairmen, openJobs, pendingApps };
-  }, [apps, jobs, users]);
 
   const COLORS = ['#0B4F8A', '#1F8A4D', '#D9A441', '#DC2626', '#60A5FA', '#14B8A6', '#F59E0B'];
 
@@ -205,11 +139,11 @@ export default function AnalyticsPage() {
           </div>
           <div className="ml-auto">
             <div className="flex items-center gap-2">
-              <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={downloadCsv} title="Download district analytics (CSV)">
-                Download CSV
+              <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={exportPdf} title="Download as PDF (print-to-PDF)">
+                Download PDF
               </button>
-              <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={exportPdf} title="Export PDF (print)">
-                Export PDF
+              <button type="button" className="btn-outline py-2 px-3 text-xs" onClick={downloadCsv} title="Download as CSV">
+                Download CSV
               </button>
             </div>
           </div>

@@ -39,13 +39,14 @@ export async function uploadUserFile(
     if (!auth.currentUser) throw new Error('You must be signed in to upload files.');
 
     const token = await auth.currentUser.getIdToken();
-    const res = await fetch(`${getLiveAppUrl()}/api/storage/sign-upload`, {
+    const res = await fetch(`${getLiveAppUrl()}/api/storage/sign`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
+        mode: 'upload',
         kind: input.kind,
         filename: input.file.name || input.nameHint || input.kind,
         contentType: input.file.type || undefined,
@@ -123,13 +124,14 @@ export async function getSignedDownloadUrl(fileRef: StoredFileRef, opts?: { expi
 
   if (!auth.currentUser) throw new Error('You must be signed in to download files.');
   const token = await auth.currentUser.getIdToken();
-  const res = await fetch(`${getLiveAppUrl()}/api/storage/sign-download`, {
+  const res = await fetch(`${getLiveAppUrl()}/api/storage/sign`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
+      mode: 'download',
       bucket: fileRef.bucket,
       path: fileRef.path,
       expiresIn: opts?.expiresIn ?? 3600,

@@ -25,5 +25,21 @@ export default defineConfig(({mode}) => {
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
     },
+    build: {
+      // This app bundles analytics charts + SDKs; keep this warning useful without being noisy.
+      chunkSizeWarningLimit: 1800,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ['react', 'react-dom', 'react-router-dom'],
+            firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage', 'firebase/functions'],
+            supabase: ['@supabase/supabase-js'],
+            charts: ['recharts'],
+            motion: ['motion'],
+            markdown: ['react-markdown'],
+          },
+        },
+      },
+    },
   };
 });

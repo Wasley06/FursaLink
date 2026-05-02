@@ -69,21 +69,34 @@ export async function pushToAdministratorQueue(input: {
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
         body: JSON.stringify({ candidateId: input.candidate.id, chairmanRemarks: input.chairmanRemarks || '' }),
       });
-      if (res.ok) {
-        for (const adminId of input.administratorIds || []) {
-          await sendNotification({
-            recipientId: adminId,
-            title: 'New profile in approval queue',
-            message: `${input.candidate.fullName} (${input.candidate.candidateIndex || input.candidate.phoneNumber})`,
-            targetPath: '/administrator/approvals',
-          });
-        }
-        return;
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        throw new Error(detail || `push_failed_${res.status}`);
       }
+
+      for (const adminId of input.administratorIds || []) {
+        await sendNotification({
+          recipientId: adminId,
+          title: 'New profile in approval queue',
+          message: `${input.candidate.fullName} (${input.candidate.candidateIndex || input.candidate.phoneNumber})`,
+          targetPath: '/administrator/approvals',
+        });
+      }
+      return;
     }
-  } catch {
-    enqueueOfflineAction({ type: 'admin_push_one', candidateId: input.candidate.id, chairmanRemarks: input.chairmanRemarks || '' });
-    // fall back to direct Firestore write below
+  } catch (e: any) {
+    // If offline (or network error), queue and exit. Do not fall back to client Firestore writes
+    // because production rules may deny it (leading to "Missing or insufficient permissions").
+    if (typeof navigator !== 'undefined' && navigator && navigator.onLine === false) {
+      enqueueOfflineAction({ type: 'admin_push_one', candidateId: input.candidate.id, chairmanRemarks: input.chairmanRemarks || '' });
+      return;
+    }
+    const msg = (e?.message || '').toLowerCase();
+    if (msg.includes('failed to fetch') || msg.includes('network') || msg.includes('fetch')) {
+      enqueueOfflineAction({ type: 'admin_push_one', candidateId: input.candidate.id, chairmanRemarks: input.chairmanRemarks || '' });
+      return;
+    }
+    throw e;
   }
   const approvalId = input.candidate.id;
   const ref = doc(db, 'administratorApprovals', approvalId);
@@ -166,21 +179,32 @@ export async function pushManyToAdministratorQueue(input: {
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
         body: JSON.stringify({ candidateIds: candidates.map((c) => c.id), chairmanRemarks: input.chairmanRemarks || '' }),
       });
-      if (res.ok) {
-        for (const adminId of input.administratorIds || []) {
-          await sendNotification({
-            recipientId: adminId,
-            title: 'New profiles pushed',
-            message: `${candidates.length} candidate profiles added to the approval queue.`,
-            targetPath: '/administrator/approvals',
-          });
-        }
-        return;
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        throw new Error(detail || `push_failed_${res.status}`);
       }
+
+      for (const adminId of input.administratorIds || []) {
+        await sendNotification({
+          recipientId: adminId,
+          title: 'New profiles pushed',
+          message: `${candidates.length} candidate profiles added to the approval queue.`,
+          targetPath: '/administrator/approvals',
+        });
+      }
+      return;
     }
-  } catch {
-    enqueueOfflineAction({ type: 'admin_push_many', candidateIds: candidates.map((c) => c.id), chairmanRemarks: input.chairmanRemarks || '' });
-    // fall back to direct Firestore writes below
+  } catch (e: any) {
+    if (typeof navigator !== 'undefined' && navigator && navigator.onLine === false) {
+      enqueueOfflineAction({ type: 'admin_push_many', candidateIds: candidates.map((c) => c.id), chairmanRemarks: input.chairmanRemarks || '' });
+      return;
+    }
+    const msg = (e?.message || '').toLowerCase();
+    if (msg.includes('failed to fetch') || msg.includes('network') || msg.includes('fetch')) {
+      enqueueOfflineAction({ type: 'admin_push_many', candidateIds: candidates.map((c) => c.id), chairmanRemarks: input.chairmanRemarks || '' });
+      return;
+    }
+    throw e;
   }
 
   // Each candidate: approvals doc + event doc => 2 writes. Keep under 450 writes per commit for safety.

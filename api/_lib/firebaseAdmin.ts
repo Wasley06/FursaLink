@@ -8,6 +8,12 @@ function requireEnv(name: string): string {
   return v;
 }
 
+function getDatabaseId() {
+  const raw = process.env.FIRESTORE_DATABASE_ID || process.env.VITE_FIRESTORE_DATABASE_ID || '(default)';
+  const id = String(raw || '').trim();
+  return id || '(default)';
+}
+
 function ensureInitialized() {
   if (getApps().length) return;
   const projectId = requireEnv('FIREBASE_ADMIN_PROJECT_ID');
@@ -25,7 +31,7 @@ export function getFirebaseAdminAuth() {
 
 export function getFirebaseAdminDb() {
   ensureInitialized();
-  return getFirestore();
+  return getFirestore(undefined, getDatabaseId());
 }
 
 export async function requireFirebaseUser(req: { headers?: Record<string, any> }) {
