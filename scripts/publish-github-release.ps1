@@ -23,6 +23,10 @@ if (-not (Test-Path "release/latest.yml")) {
 
 $assets = @(
   "release/latest.yml",
+  # Preferred artifactName (see package.json build.artifactName)
+  "release/FursaLink-Zanzibar-$Version-win-*.exe",
+  "release/FursaLink-Zanzibar-$Version-win-*.exe.blockmap",
+  # Legacy / alternative naming (kept for backwards compatibility)
   "release/*Setup*$Version*.exe",
   "release/*Setup*$Version*.exe.blockmap"
 )
