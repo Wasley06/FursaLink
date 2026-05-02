@@ -11,6 +11,7 @@ import type { UserProfile } from '../../types';
 import { cn } from '../../lib/utils';
 import { getSignedDownloadUrl } from '../../lib/uploads';
 import { getLiveAppUrl } from '../../lib/liveAppUrl';
+import { addFursaLinkHeader, addSectionTitle, addTable, createBrandedPdfDoc } from '../../lib/pdf';
 
 type BulkSize = 50 | 100 | 150 | 250;
 
@@ -261,6 +262,29 @@ export default function ChairmanApprovalsPage() {
     w.document.close();
   };
 
+  const exportListPdf = async () => {
+    try {
+      const docPdf = createBrandedPdfDoc({ title: 'Candidate Profiles' });
+      let y = await addFursaLinkHeader(docPdf, { title: 'Candidate Profiles', subtitle: 'Chairman approvals export' });
+      y = addSectionTitle(docPdf, { text: 'Filtered List', y });
+      addTable(docPdf, {
+        startY: y,
+        head: [['#', 'Name', 'Phone', 'District', 'Ward', 'Occupation']],
+        body: filtered.slice(0, 1000).map((c, i) => [
+          `${i + 1}.`,
+          c.fullName || '-',
+          c.phoneNumber || '-',
+          c.district || '-',
+          c.ward || '-',
+          c.occupation || '-',
+        ]),
+      });
+      docPdf.save(`fursalink_approvals_profiles_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch {
+      // ignore
+    }
+  };
+
   const doDelete = async () => {
     if (!profile || !activeCandidate) return;
     await updateDoc(doc(db, 'users', activeCandidate.id), {
@@ -347,6 +371,33 @@ export default function ChairmanApprovalsPage() {
       </body></html>
     `);
     w.document.close();
+  };
+
+  const exportProfilePdf = async (c: UserProfile) => {
+    try {
+      const docPdf = createBrandedPdfDoc({ title: c.fullName || 'Candidate Profile' });
+      let y = await addFursaLinkHeader(docPdf, { title: 'Candidate Profile', subtitle: c.fullName || '' });
+      y = addSectionTitle(docPdf, { text: 'Details', y });
+      addTable(docPdf, {
+        startY: y,
+        head: [['Field', 'Value']],
+        body: [
+          ['Name', c.fullName || '-'],
+          ['Phone', c.phoneNumber || '-'],
+          ['Reference', c.candidateIndex || c.id || '-'],
+          ['District', c.district || '-'],
+          ['Ward', c.ward || '-'],
+          ['Occupation', c.occupation || '-'],
+          ['DOB', c.dob || '-'],
+          ['Education', c.education || '-'],
+          ['Address', c.address || '-'],
+          ['Email', String((c as any).contactEmail || (c as any).email || '-')],
+        ],
+      });
+      docPdf.save(`fursalink_profile_${(c.fullName || 'candidate').toLowerCase().replace(/[^a-z0-9]+/g, '_')}.pdf`);
+    } catch {
+      // ignore
+    }
   };
 
   const openPreview = (c: UserProfile) => {
@@ -442,7 +493,7 @@ export default function ChairmanApprovalsPage() {
             <button type="button" className="btn-outline py-2 px-3 text-xs" disabled={filtered.length === 0} onClick={printList} title="Print filtered list">
               <Printer className="w-4 h-4 mr-2" /> Print
             </button>
-            <button type="button" className="btn-outline py-2 px-3 text-xs" disabled={filtered.length === 0} onClick={printList} title="Export filtered list as PDF (print)">
+            <button type="button" className="btn-outline py-2 px-3 text-xs" disabled={filtered.length === 0} onClick={exportListPdf} title="Export filtered list as PDF">
               <Download className="w-4 h-4 mr-2" /> Export PDF
             </button>
             <button
@@ -612,7 +663,7 @@ export default function ChairmanApprovalsPage() {
             <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
               {previewCandidate ? (
                 <>
-                  <button type="button" className="btn-outline py-2.5 px-4 text-xs" onClick={() => printCandidate(previewCandidate)}>
+                  <button type="button" className="btn-outline py-2.5 px-4 text-xs" onClick={() => exportProfilePdf(previewCandidate)}>
                     <Download className="w-4 h-4 mr-2" /> Export PDF
                   </button>
                   <button type="button" className="btn-outline py-2.5 px-4 text-xs" onClick={() => printCandidate(previewCandidate)}>

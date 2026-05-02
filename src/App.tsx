@@ -58,9 +58,8 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
   if (!user) return <Navigate to="/login" />;
   if (profile && !allowedRoles.includes(profile.role)) return <Navigate to="/dashboard" />;
   if (candidateNeedsVerification(profile)) return <Navigate to={candidateVerificationPath(profile)} replace />;
-  if (profile?.role === 'candidate' && !String((profile as any)?.photoUrl || '').trim() && !location.pathname.startsWith('/candidate/settings')) {
-    return <Navigate to="/candidate/settings" replace />;
-  }
+  // Do not hard-block candidates without profile photo: allow them to use the portal and
+  // show the upload prompt in Profile Settings instead (prevents "stuck on settings" loops).
 
   return <>{children}</>;
 }

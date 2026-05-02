@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils';
 import type { UserProfile } from '../../types';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { normalizeStoredRole } from '../../lib/roles';
 
 export default function DeveloperRecoveryPage() {
   const { profile } = useAuth();
@@ -25,7 +26,13 @@ export default function DeveloperRecoveryPage() {
       qy,
       (snap) => {
         const all = snap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
-        setItems(all.filter((u: any) => u.role === 'candidate'));
+        setItems(
+          all.filter((u: any) => {
+            const raw = String(u?.role || '').trim();
+            if (!raw) return false; // don't guess missing roles
+            return normalizeStoredRole(raw) === 'candidate';
+          }),
+        );
         setLoading(false);
       },
       (e) => {
@@ -193,4 +200,3 @@ export default function DeveloperRecoveryPage() {
     </div>
   );
 }
-
